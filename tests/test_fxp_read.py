@@ -85,3 +85,11 @@ def test_rejects_a_truncated_preset(factory_library):
 
     with pytest.raises(fxp.FxpError):
         fxp.read(data[:200])
+
+
+def test_rejects_a_preset_whose_trailer_does_not_match_its_state(factory_library):
+    data = bytearray((factory_library / "Bass/BA Ampology [CFA].fxp").read_bytes())
+    data[-4:] = (0).to_bytes(4, "little")
+
+    with pytest.raises(fxp.FxpError):
+        fxp.read(bytes(data))

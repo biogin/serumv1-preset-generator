@@ -59,3 +59,5 @@ PARAMETERS: tuple[Parameter, ...] = (
     Parameter("Fil Cutoff", 45, Scale.EXPONENTIAL, 440 * 2 ** (-69 / 12), 22050.0, "Hz"),
     Parameter("Fil Reso", 46, Scale.LINEAR, 0.0, 100.0, "%"),
 )
+
+PARAMETERS_BY_NAME: dict[str, Parameter] = {p.name: p for p in PARAMETERS}
