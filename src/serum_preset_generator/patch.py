@@ -13,6 +13,10 @@ class Routing:
     # Writing fills slots in list order.
     slot: int | None = field(default=None, compare=False)
 
+    def __str__(self) -> str:
+        bipolar = " (bipolar)" if self.bipolar else ""
+        return f"{self.source} → {self.destination} {self.amount:.4g} %{bipolar}"
+
 
 @dataclass
 class Patch:

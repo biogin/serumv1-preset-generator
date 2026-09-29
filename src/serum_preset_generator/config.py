@@ -53,6 +53,11 @@ def load_design_config() -> DesignConfig:
     )
 
 
+def library_dir() -> Path:
+    """Serum's preset library, searched when a Preset is named rather than given by path."""
+    return Path(os.environ.get("SERUM_GEN_SERUM_ROOT", DEFAULT_SERUM_ROOT)) / "Presets"
+
+
 def factory_wavetables(tables_dir: Path) -> frozenset[str] | None:
     """Wavetable paths relative to Serum's Tables folder, as presets store them."""
     if not tables_dir.is_dir():

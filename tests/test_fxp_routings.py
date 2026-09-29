@@ -100,3 +100,15 @@ def test_routings_cannot_be_written_onto_an_older_builds_preset(factory_library)
 
     with pytest.raises(fxp.FxpError, match="older Serum build"):
         fxp.write(Patch("t", routings=WOBBLE), base=base)
+
+
+def test_changing_one_routing_leaves_the_other_slots_alone():
+    base = bytearray(fxp.write(Patch("t", routings=WOBBLE), base=default_template()))
+    # A hand-made preset: slot 2's output knob turned down to 50 % in Serum.
+    base = fxp.write(Patch("t", {"Mod 2 out": 50.0}), base=bytes(base))
+    changed = [Routing("LFO 1", "Fil Cutoff", 80.0), *WOBBLE[1:]]
+
+    written = fxp.read(fxp.write(Patch("t", routings=changed), base=base))
+
+    assert written.routings[0].amount == pytest.approx(80.0)
+    assert written.params["Mod 2 out"] == pytest.approx(50.0, abs=1e-3)

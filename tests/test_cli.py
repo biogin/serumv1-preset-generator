@@ -104,3 +104,60 @@ def test_design_reports_each_constraint(tmp_path, capsys):
     cli.main(["dry", "bass"], model=model, config=config)
 
     assert "Constraints: no reverb ✓" in capsys.readouterr().out
+
+
+def _boom_library(tmp_path):
+    from test_revise_patch import BOOM
+
+    from serum_preset_generator import fxp as codec
+
+    library = tmp_path / "library"
+    (library / "Bass").mkdir(parents=True)
+    for name in ("808 Boom", "808 Boom Soft"):
+        path = library / "Bass" / f"{name}.fxp"
+        path.write_bytes(codec.write(BOOM, base=_init_template()))
+    return library
+
+
+def test_revise_prints_the_changes_and_the_new_preset(tmp_path, capsys):
+    from fake_model import ScriptedModel
+    from test_design_patch import brief
+    from test_revise_patch import harder
+
+    from serum_preset_generator.pipeline import DesignConfig
+
+    config = DesignConfig(output_dir=tmp_path / "AI", template=_init_template())
+    model = ScriptedModel([brief(), harder(Dist_Drv=55.0)])
+
+    exit_code = cli.main(
+        ["revise", "808 boom", "hit harder"],
+        model=model,
+        config=config,
+        library=_boom_library(tmp_path),
+    )
+
+    out = capsys.readouterr().out
+    assert exit_code == 0
+    assert "Dist_Drv up: more bite." in out
+    assert "Dist_Drv: 20 % → 55 %" in out
+    assert str(tmp_path / "AI" / "808 Boom_v2.fxp") in out
+
+
+def test_revise_asks_which_preset_when_the_name_is_ambiguous(tmp_path, capsys):
+    from fake_model import ScriptedModel
+
+    from serum_preset_generator.pipeline import DesignConfig
+
+    config = DesignConfig(output_dir=tmp_path / "AI", template=_init_template())
+
+    exit_code = cli.main(
+        ["revise", "808", "hit harder"],
+        model=ScriptedModel([]),
+        config=config,
+        library=_boom_library(tmp_path),
+    )
+
+    err = capsys.readouterr().err
+    assert exit_code == 1
+    assert "Bass/808 Boom.fxp" in err and "Bass/808 Boom Soft.fxp" in err
+    assert not (tmp_path / "AI").exists()

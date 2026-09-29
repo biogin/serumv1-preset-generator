@@ -7,6 +7,8 @@ from .pipeline import DesignResult
 def success_text(result: DesignResult) -> str:
     assert result.preset_path is not None  # a passed validation always writes one
     lines = [result.recipe or ""]
+    if result.changes:
+        lines += ["", "Changes:", *(f"- {change}" for change in result.changes)]
     if result.validation.constraints:
         kept = ", ".join(
             f"{label(name)} {'✓' if ok else '✗'}"

@@ -25,12 +25,19 @@ echo 'ANTHROPIC_API_KEY=sk-ant-…' > .env && chmod 600 .env   # never committed
 ```sh
 uv run serum-gen "dubstep wobble bass, the filter wobbles at 1/8"
 uv run serum-gen -v "тёмный мягкий пэд"          # -v traces each pipeline step
+uv run serum-gen revise "808 Boom" "hit harder"  # a Revision: new "808 Boom_v2", original untouched
 uv run serum-gen inspect path/to/preset.fxp      # every parameter and Routing of a preset
 ```
 
+`revise` takes a preset name, searched in Serum's library (a unique partial name works; if
+several match, it lists them), or a path. The Revision's recipe lists only what changed and
+why. Presets saved by older Serum builds (all factory presets) can have their knobs and
+switches revised but not their modulation matrix.
+
 ## MCP server (Claude Desktop / Claude Code)
 
-The server exposes one tool, `design_patch(sound_description)`. It reads `.env`
+The server exposes two tools: `design_patch(sound_description)` and
+`revise_patch(preset, feedback)`. It reads `.env`
 from this folder, so the key needn't be in the client's environment.
 
 **Claude Code:**
@@ -59,7 +66,8 @@ and restart Claude Desktop:
 Use absolute paths: Claude Desktop doesn't start servers with your shell's `PATH`.
 Replace `/opt/homebrew/bin/uv` with the output of `which uv` if yours lives elsewhere,
 and the folder with wherever you cloned this repo.
-Then ask it, for example: *"Make me a Serum preset: warm evolving pad, no reverb."*
+Then ask it, for example: *"Make me a Serum preset: warm evolving pad, no reverb"*, or
+*"Make my Biggest Hard 808 preset hit harder."*
 
 ## Configuration
 

@@ -82,6 +82,17 @@ def read(data: bytes) -> Patch:
     return _patch_from_state(_unpack(data).state)
 
 
+def routings_writable(data: bytes) -> bool:
+    """Whether `write` can replace this Preset's Routings (it was saved by the current build)."""
+    return _is_current_build(_unpack(data).state)
+
+
+def writable_parameters(data: bytes) -> frozenset[str]:
+    """Parameters this Preset really stores; older builds ignore the second block's tail."""
+    limit = _untrusted_from(_unpack(data).state)
+    return frozenset(p.name for p in PARAMETERS if limit is None or p.index < limit)
+
+
 def write(patch: Patch, base: bytes) -> bytes:
     """Return `base` with `patch` applied.
 
@@ -98,8 +109,9 @@ def write(patch: Patch, base: bytes) -> bytes:
             raise FxpError(f"unknown parameter {name!r}")
         param = PARAMETERS_BY_NAME[name]
         if value != base_patch.params.get(name):
-            if len(state) < _param_offset(param.index) + 4:
-                raise FxpError(f"{name}: the base Preset predates this parameter")
+            limit = _untrusted_from(state)
+            if limit is not None and param.index >= limit:
+                raise FxpError(f"{name}: a Preset saved by an older Serum build doesn't store it")
             struct.pack_into("<f", state, _param_offset(param.index), _encode(param, value))
 
     if patch.name != base_patch.name:
@@ -211,7 +223,11 @@ def _write_routings(state: bytearray, routings: list[Routing]) -> None:
     offsets = _mod_record_offsets(state)
     if len(routings) > len(offsets):
         raise FxpError(f"{len(routings)} routings, but the base Preset has {len(offsets)} slots")
+    existing = {r.slot: r for r in _read_routings(bytes(state))}
     for slot, offset in enumerate(offsets, start=1):
+        wanted = routings[slot - 1] if slot <= len(routings) else None
+        if wanted == existing.get(slot):
+            continue  # untouched: keep what Serum stored (aux source, output knob...)
         if slot <= len(routings):
             routing = routings[slot - 1]
             route = (*_route_ids(slot, routing),)
@@ -255,10 +271,13 @@ def _stored(state: bytes, index: int) -> float:
     return float(value)
 
 
+def _untrusted_from(state: bytes | bytearray) -> int | None:
+    """The first parameter index this state can't hold, or None if it holds all."""
+    return next((first for size, first in UNTRUSTED_FROM_BY_STATE_SIZE if len(state) < size), None)
+
+
 def _stored_or_default(state: bytes, index: int) -> float:
-    untrusted_from = next(
-        (first for size, first in UNTRUSTED_FROM_BY_STATE_SIZE if len(state) < size), None
-    )
+    untrusted_from = _untrusted_from(state)
     if untrusted_from is not None and index >= untrusted_from:
         return _init_state_values()[index]
     return _stored(state, index)

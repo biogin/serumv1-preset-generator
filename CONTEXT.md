@@ -28,6 +28,10 @@ _Avoid_: rule, requirement
 A Serum 1 `.fxp` file that loads the patch directly in Serum's browser.
 _Avoid_: patch file, fxp (in prose)
 
+**Revision**:
+A new Preset made from an existing one by applying the producer's feedback ("hit harder"). Its Patch Recipe lists only what changed and why; the original Preset is never modified.
+_Avoid_: edit, update, tweak, version
+
 **Knowledge Base**:
 The collection of reference material the generator draws on: the Serum manual, synthesis articles, and tutorials from forums and YouTube.
 _Avoid_: docs, corpus, memory
