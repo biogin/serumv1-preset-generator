@@ -30,3 +30,4 @@
   2. Draft 1 enabled the Distortion FX and was rejected.
   3. Draft 2 used a Scream LP filter at drive 65 with OscS>Fil Off, and passed. The recipe explains why.
 - Optional check by ear: `User/AI/Cyberpunk Clean Sub Bass`.
+- 2026-09-29: owner listened to `Cyberpunk Clean Sub Bass` in Serum: looks good.
