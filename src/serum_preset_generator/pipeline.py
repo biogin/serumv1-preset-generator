@@ -18,8 +18,12 @@ from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 
 from . import fxp
-from .parameter_reference import parameters_by_module
-from .patch import Patch
+from .parameter_reference import (
+    DESIGNABLE_MOD_SOURCES,
+    MOD_DESTINATIONS,
+    parameters_by_module,
+)
+from .patch import Patch, Routing
 from .validator import validate
 
 log = logging.getLogger(__name__)
@@ -43,15 +47,26 @@ class ParameterValue(BaseModel):
     value: float | str = Field(description="Number in the parameter's unit, or an option name")
 
 
+class RoutingDraft(BaseModel):
+    source: str = Field(description="A modulation source from the list, e.g. LFO 1, Env 2")
+    destination: str = Field(description="A modulation destination from the list")
+    amount: float = Field(description="-100 to 100 percent")
+    bipolar: bool = Field(default=False, description="Modulate around the knob's position")
+
+
 class Draft(BaseModel):
     """What `draft` proposes: the Patch values and the Patch Recipe explaining them."""
 
     values: list[ParameterValue]
+    routings: list[RoutingDraft] = Field(
+        default_factory=list, description="Modulation matrix, in slot order (max 32)"
+    )
     wavetable_a: str | None = Field(description="Factory wavetable for Osc A, or null for default")
     wavetable_b: str | None = Field(description="Factory wavetable for Osc B, or null for default")
     recipe: str = Field(
         description="Step-by-step Patch Recipe, module by module, with the reasoning for each "
-        "choice, in the Sound Description's language, using Serum's on-screen names"
+        "choice, then each routing (source → destination, amount) and why, in the Sound "
+        "Description's language, using Serum's on-screen names"
     )
 
 
@@ -203,14 +218,26 @@ oscillator "Osc S On", noise "Osc N On", and each effect its "<name> Enable" in
 FX Rack. Route an oscillator through the filter with its "Osc?>Fil" switch.
 Tempo-synced knobs (LFO rates, delay times) take note values such as 1/4.
 
+Movement comes from the modulation matrix: a routing sends a source (an LFO,
+an envelope, a macro...) to a destination by an amount from -100 to 100 %.
+An LFO or Env 2/3 does nothing until it is routed; Env 1 always shapes the
+volume. For a wobble, route an LFO to Fil Cutoff; for a filter pluck, route
+Env 2 to Fil Cutoff. Set "bipolar" to modulate both ways around the knob.
+
 Also write the Patch Recipe: step-by-step instructions, module by module, that
 a producer could follow in Serum's interface, with a short reason for each
-choice. Write it in the language of the Sound Description, but keep Serum's
+choice, then a "Modulation" step listing each routing (source → destination,
+amount) and what it does to the sound. Write it in the language of the Sound
+Description, but keep Serum's
 on-screen names (module, knob and option names) in English exactly as Serum
 shows them.
 
 Parameter Reference:
 {reference}
+
+Modulation sources: {mod_sources}
+
+Modulation destinations: {mod_destinations}
 
 Oscillator wavetables: use one of these factory wavetables, or null for Serum's default:
 {wavetables}"""
@@ -229,6 +256,8 @@ def _draft_messages(
 ) -> list[BaseMessage]:
     system = _DRAFT_SYSTEM.format(
         reference=_reference_text(init),
+        mod_sources=", ".join(DESIGNABLE_MOD_SOURCES),
+        mod_destinations=", ".join(MOD_DESTINATIONS),
         wavetables="\n".join(sorted(wavetables)) if wavetables else "(any factory wavetable)",
     )
     request = f"Sound Description:\n{description}\n\nBrief:\n{brief.model_dump_json(indent=2)}"
@@ -263,11 +292,13 @@ def _to_patch(draft: Draft, name: str) -> Patch:
         params={s.name: s.value for s in draft.values},
         wavetable_a=draft.wavetable_a,
         wavetable_b=draft.wavetable_b,
+        routings=[Routing(r.source, r.destination, r.amount, r.bipolar) for r in draft.routings],
     )
 
 
 def _safe_name(proposed: str) -> str:
     ascii_name = unicodedata.normalize("NFKD", proposed).encode("ascii", "ignore").decode()
+    ascii_name = ascii_name.replace("/", "-")  # "1/8" stays readable as "1-8"
     cleaned = re.sub(r"[^A-Za-z0-9 _\-()\[\]]+", "", ascii_name).strip()
     return cleaned[:PRESET_NAME_LIMIT].strip() or "AI Patch"
 

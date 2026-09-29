@@ -550,3 +550,157 @@ MODULES: tuple[str, ...] = tuple(dict.fromkeys(p.module for p in PARAMETERS))
 
 def parameters_by_module() -> dict[str, list[Parameter]]:
     return {m: [p for p in PARAMETERS if p.module == m] for m in MODULES}
+
+
+# Modulation sources as the current Serum 1 build stores them (FORMATS.md,
+# confirmed on a preset the owner saved: macros are 24-27). Id 0 is an empty slot.
+MOD_SOURCES: dict[int, str] = {
+    1: "Mod Wheel", 2: "Env 1", 3: "Env 2", 4: "Env 3",
+    5: "LFO 1", 6: "LFO 2", 7: "LFO 3", 8: "LFO 4",
+    9: "LFO 5", 10: "LFO 6", 11: "LFO 7", 12: "LFO 8",
+    13: "Velocity", 14: "Note", 15: "Aftertouch", 16: "Poly Aftertouch",
+    17: "Chaos 1", 18: "Chaos 2", 19: "Noise Osc", 20: "NoteOn Rand 1", 21: "NoteOn Rand 2",
+    22: "NoteOn Alt", 23: "NoteOn Alt 2",
+    24: "Macro 1", 25: "Macro 2", 26: "Macro 3", 27: "Macro 4",
+    28: "Pitch Bend", 29: "MPE X", 30: "MPE Y", 31: "MPE Z", 32: "Release Velocity", 33: "Fixed",
+}  # fmt: skip
+MOD_SOURCE_IDS: dict[str, int] = {name: i for i, name in MOD_SOURCES.items()}
+# Presets from older builds number some sources differently (Serum converts on
+# load). Ids 1-12 agree; the factory library's use of 17-20 tracks Macros 1-4.
+# Other ids >= 13 in old presets are not known.
+LEGACY_MOD_SOURCES: dict[int, str] = {
+    **{i: MOD_SOURCES[i] for i in range(1, 13)},
+    **{16 + n: f"Macro {n}" for n in range(1, 5)},
+}
+# The design scope: LFOs 5-8 are out (like their parameters), and MPE and
+# Fixed make no sense for a Preset designed from a description.
+_OUT_OF_SCOPE_SOURCES = {"LFO 5", "LFO 6", "LFO 7", "LFO 8", "MPE X", "MPE Y", "MPE Z", "Fixed"}
+DESIGNABLE_MOD_SOURCES: tuple[str, ...] = tuple(
+    name for name in MOD_SOURCES.values() if name not in _OUT_OF_SCOPE_SOURCES
+)
+
+# Each matrix record stores its destination twice: as a parameter index and as
+# a position in Serum's destination menu. The menu positions below were mined
+# from every routing in the factory library (one position per index, always);
+# only these destinations can be written.
+MOD_DESTINATION_MENU: dict[int, int] = {
+    1: 0,
+    2: 2,
+    3: 6,
+    4: 8,
+    5: 10,
+    7: 12,
+    8: 14,
+    9: 16,
+    10: 4,
+    11: 18,
+    12: 20,
+    13: 22,
+    14: 1,
+    15: 3,
+    16: 7,
+    17: 9,
+    18: 11,
+    20: 13,
+    21: 15,
+    22: 17,
+    23: 5,
+    24: 19,
+    25: 21,
+    26: 23,
+    27: 24,
+    28: 25,
+    30: 27,
+    33: 30,
+    34: 31,
+    35: 32,
+    36: 35,
+    37: 38,
+    38: 41,
+    39: 44,
+    45: 47,
+    46: 48,
+    47: 49,
+    48: 50,
+    49: 51,
+    50: 52,
+    51: 33,
+    52: 36,
+    53: 39,
+    54: 42,
+    55: 45,
+    56: 34,
+    58: 40,
+    59: 43,
+    60: 46,
+    61: 53,
+    62: 54,
+    63: 55,
+    64: 56,
+    69: 64,
+    80: 57,
+    81: 68,
+    82: 69,
+    83: 70,
+    84: 71,
+    85: 72,
+    86: 73,
+    87: 74,
+    88: 75,
+    89: 76,
+    90: 77,
+    91: 78,
+    92: 79,
+    93: 80,
+    95: 82,
+    96: 83,
+    97: 84,
+    98: 85,
+    100: 86,
+    103: 88,
+    105: 90,
+    106: 91,
+    108: 93,
+    109: 94,
+    111: 96,
+    112: 97,
+    113: 98,
+    114: 99,
+    115: 100,
+    116: 101,
+    123: 108,
+    124: 109,
+    125: 110,
+    126: 111,
+    129: 114,
+    130: 115,
+    132: 117,
+    133: 118,
+    134: 119,
+    135: 120,
+    136: 121,
+    137: 122,
+    138: 123,
+    139: 124,
+    141: 126,
+    143: 128,
+    144: 129,
+    145: 130,
+    146: 131,
+    147: 132,
+    148: 133,
+    149: 134,
+    152: 136,
+    153: 137,
+    222: 66,
+    227: 138,
+}
+MOD_DESTINATIONS: tuple[str, ...] = tuple(PARAMETERS[i].name for i in MOD_DESTINATION_MENU)
+MOD_SLOTS = 32
+MOD_AMOUNT_LIMIT = 100.0  # percent, either direction
+
+
+def mod_slot_parameters(slot: int) -> tuple[Parameter, Parameter]:
+    """The amount and output-level parameters that mirror matrix slot `slot` (1-32)."""
+    label = f"Mod {slot}" if slot < 10 else f"Mod{slot}"  # Serum's own names
+    return PARAMETERS_BY_NAME[f"{label} amt"], PARAMETERS_BY_NAME[f"{label} out"]

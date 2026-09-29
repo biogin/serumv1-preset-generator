@@ -13,8 +13,12 @@ A human-readable, step-by-step list of Serum settings (module by module) that pr
 _Avoid_: steps, instructions, patch notes
 
 **Patch**:
-A complete set of Serum settings in human terms (values by Parameter Reference name, in real units or option names, plus wavetables). A Preset stores a Patch, and a Patch Recipe explains one.
+A complete set of Serum settings in human terms (values by Parameter Reference name, in real units or option names, plus wavetables and Routings). A Preset stores a Patch, and a Patch Recipe explains one.
 _Avoid_: sound, settings, state
+
+**Routing**:
+One modulation-matrix slot: a modulation source (an LFO, envelope, macro...) moving a destination parameter by an amount from -100 to 100 %, optionally bipolar. A Patch holds up to 32, in slot order.
+_Avoid_: mod, connection, mod slot
 
 **Preset**:
 A Serum 1 `.fxp` file that loads the patch directly in Serum's browser.

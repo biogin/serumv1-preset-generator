@@ -5,7 +5,14 @@ from fake_model import ScriptedModel
 
 from serum_preset_generator import fxp
 from serum_preset_generator.config import default_template
-from serum_preset_generator.pipeline import Brief, DesignConfig, Draft, ParameterValue, design_patch
+from serum_preset_generator.pipeline import (
+    Brief,
+    DesignConfig,
+    Draft,
+    ParameterValue,
+    RoutingDraft,
+    design_patch,
+)
 
 
 @pytest.fixture
@@ -173,3 +180,64 @@ def test_parameters_outside_the_design_scope_are_rejected(config):
 
     assert not result.validation.passed
     assert any("Mod 1 amt" in e for e in result.validation.errors)
+
+
+def test_a_drafts_routings_end_up_in_the_preset(config):
+    draft = valid_draft(
+        routings=[
+            RoutingDraft(source="LFO 1", destination="Fil Cutoff", amount=40.0),
+            RoutingDraft(source="Env 2", destination="Fil Cutoff", amount=25.0, bipolar=False),
+        ]
+    )
+
+    result = design_patch("wobble bass", model=ScriptedModel([brief(), draft]), config=config)
+
+    routings = fxp.read(result.preset_path.read_bytes()).routings
+    assert [(r.source, r.destination) for r in routings] == [
+        ("LFO 1", "Fil Cutoff"),
+        ("Env 2", "Fil Cutoff"),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("routing", "complaint"),
+    [
+        (RoutingDraft(source="LFO 7", destination="Fil Cutoff", amount=40.0), "LFO 7"),
+        (RoutingDraft(source="LFO 1", destination="Fil Type", amount=40.0), "Fil Type"),
+        (RoutingDraft(source="LFO 1", destination="Fil Cutoff", amount=140.0), "140"),
+    ],
+)
+def test_bad_routings_are_sent_back_to_the_model(config, routing, complaint):
+    model = ScriptedModel([brief(), valid_draft(routings=[routing]), valid_draft()])
+
+    result = design_patch("wobble bass", model=model, config=config)
+
+    assert result.validation.retries == 1
+    assert complaint in model.prompts[-1]
+
+
+def test_the_model_sees_the_modulation_sources_and_destinations(config):
+    model = ScriptedModel([brief(), valid_draft()])
+
+    design_patch("bass", model=model, config=config)
+
+    prompt = model.prompts[1]
+    assert "Modulation sources: Mod Wheel, Env 1, Env 2" in prompt
+    assert "Fil Cutoff" in prompt.split("Modulation destinations:")[1]
+
+
+def test_note_values_in_a_name_stay_readable(config):
+    model = ScriptedModel([brief(name="Wobble 1/8 Bass"), valid_draft()])
+
+    result = design_patch("wobble", model=model, config=config)
+
+    assert result.preset_path.stem == "Wobble 1-8 Bass"
+
+
+def test_more_routings_than_the_matrix_holds_are_rejected(config):
+    routings = [RoutingDraft(source="LFO 1", destination="Fil Cutoff", amount=1.0)] * 33
+    model = ScriptedModel([brief(), valid_draft(routings=routings)])
+
+    result = design_patch("bass", model=model, config=replace(config, max_retries=0))
+
+    assert any("33 routings" in e for e in result.validation.errors)

@@ -2,7 +2,13 @@
 
 from collections.abc import Collection
 
-from .parameter_reference import PARAMETERS_BY_NAME
+from .parameter_reference import (
+    DESIGNABLE_MOD_SOURCES,
+    MOD_AMOUNT_LIMIT,
+    MOD_DESTINATIONS,
+    MOD_SLOTS,
+    PARAMETERS_BY_NAME,
+)
 from .patch import Patch
 
 
@@ -21,7 +27,19 @@ def validate(patch: Patch, wavetables: Collection[str] | None = None) -> list[st
         elif problem := param.check(value):
             errors.append(problem)
     if wavetables is not None:
-        for slot, table in (("Osc A", patch.wavetable_a), ("Osc B", patch.wavetable_b)):
+        for osc, table in (("Osc A", patch.wavetable_a), ("Osc B", patch.wavetable_b)):
             if table is not None and table not in wavetables:
-                errors.append(f"{slot} wavetable {table!r} is not a factory wavetable")
+                errors.append(f"{osc} wavetable {table!r} is not a factory wavetable")
+    routings = patch.routings or []
+    if len(routings) > MOD_SLOTS:
+        errors.append(f"{len(routings)} routings; Serum's matrix has {MOD_SLOTS} slots")
+    for slot, routing in enumerate(routings, start=1):
+        if routing.source not in DESIGNABLE_MOD_SOURCES:
+            errors.append(f"routing {slot}: {routing.source!r} is not an allowed modulation source")
+        if routing.destination not in MOD_DESTINATIONS:
+            errors.append(
+                f"routing {slot}: {routing.destination!r} is not a modulation destination"
+            )
+        if abs(routing.amount) > MOD_AMOUNT_LIMIT:
+            errors.append(f"routing {slot}: amount {routing.amount:g} is outside -100..100 %")
     return errors

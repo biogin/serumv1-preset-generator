@@ -82,3 +82,11 @@ def test_a_description_starting_with_inspect_is_still_a_description(tmp_path, ca
 
     assert exit_code == 0
     assert "Preset:" in capsys.readouterr().out
+
+
+def test_inspect_lists_the_mod_matrix(factory_library, capsys):
+    cli.main(["inspect", str(factory_library / "Bass/BA Talk Wobz [ADWR].fxp")])
+
+    out = capsys.readouterr().out
+    assert "\nModulation matrix\n" in out
+    assert "  1: LFO 1 → Fil Cutoff 48.9 %" in out

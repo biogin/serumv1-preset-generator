@@ -17,8 +17,19 @@ import zlib
 from dataclasses import dataclass
 from functools import cache
 
-from .parameter_reference import PARAMETERS, PARAMETERS_BY_NAME, Parameter
-from .patch import Patch
+from .parameter_reference import (
+    LEGACY_MOD_SOURCES,
+    MOD_AMOUNT_LIMIT,
+    MOD_DESTINATION_MENU,
+    MOD_SLOTS,
+    MOD_SOURCE_IDS,
+    MOD_SOURCES,
+    PARAMETERS,
+    PARAMETERS_BY_NAME,
+    Parameter,
+    mod_slot_parameters,
+)
+from .patch import Patch, Routing
 from .resources import default_template
 
 HEADER_SIZE = 0x3C
@@ -36,6 +47,19 @@ OFF_PARAMS_0_227 = 0x3460
 OFF_PARAMS_228_298 = 0x4AE0
 FIRST_SECOND_BLOCK_INDEX = 228
 UNTRUSTED_FROM_BY_STATE_SIZE = ((21000, 228), (28000, 260), (33000, 273))  # (size, index)
+# Modulation matrix: 32 records of 40 bytes. Slots 1-16 sit at the start of
+# the state; 17-32 further in. Each record ends with a self-identifying marker
+# 80 <slot - 1> FF at +0x21 (FORMATS.md; the slot byte is 0-based).
+MOD_RECORD_SIZE = 40
+MOD_FIXED_SLOTS = 16  # slots 1-16 sit at fixed offsets; 17-32 are found by marker
+MOD_AMOUNTS_AT = 0x00  # float32 x3: amount on a 0..1 scale, amount (-1..1), output (0..1)
+MOD_BIPOLAR_AT = 0x0C  # uint8: 1 = bipolar
+MOD_ROUTE_AT = 0x14  # uint16 x4: source id, aux source id, destination menu position, index
+MOD_MARKER_AT = 0x21
+MOD_EMPTY_ROUTE = (0, 0, 173, 316)  # what Serum stores in an empty slot
+# States this large are written by the current build (the "new layout"); older
+# builds number some mod sources differently.
+CURRENT_BUILD_MIN_STATE = 100_000
 OFF_WAVETABLE_A = 0x3C08
 OFF_WAVETABLE_B = 0x3E08
 WAVETABLE_NAME_SIZE = 512
@@ -89,6 +113,9 @@ def write(patch: Patch, base: bytes) -> bytes:
         if table != base_table:
             _put_text(state, offset, WAVETABLE_NAME_SIZE, table or "", "wavetable name")
 
+    if patch.routings is not None and patch.routings != base_patch.routings:
+        _write_routings(state, patch.routings)
+
     compressed = zlib.compress(state, STATE_COMPRESSION_LEVEL)
     chunk = compressed + container.extra + struct.pack("<I", len(compressed))
     struct.pack_into(">I", header, OFF_FILE_SIZE, HEADER_SIZE + len(chunk))
@@ -102,6 +129,7 @@ def _patch_from_state(state: bytes) -> Patch:
         params={p.name: _display(p, _stored_or_default(state, p.index)) for p in PARAMETERS},
         wavetable_a=_cstring(state, OFF_WAVETABLE_A, WAVETABLE_NAME_SIZE) or None,
         wavetable_b=_cstring(state, OFF_WAVETABLE_B, WAVETABLE_NAME_SIZE) or None,
+        routings=_read_routings(state),
     )
 
 
@@ -126,6 +154,93 @@ def _unpack(data: bytes) -> _Container:
         raise FxpError("chunk trailer doesn't match the compressed state's length")
     extra = after_state[: len(after_state) - len(trailer)]
     return _Container(header=data[:HEADER_SIZE], state=state, extra=extra)
+
+
+def _mod_record_offsets(state: bytes | bytearray) -> list[int]:
+    """Offsets of the modulation records present, in slot order."""
+    offsets = []
+    for slot in range(MOD_SLOTS):
+        marker = bytes([0x80, slot, 0xFF])
+        if slot < MOD_FIXED_SLOTS:
+            fixed = slot * MOD_RECORD_SIZE
+            at = fixed + MOD_MARKER_AT
+            found = fixed if state[at : at + 3] == marker else -1
+        else:
+            at = state.find(marker, MOD_FIXED_SLOTS * MOD_RECORD_SIZE)
+            found = at - MOD_MARKER_AT if at != -1 else -1
+        if found == -1:
+            break
+        offsets.append(found)
+    return offsets
+
+
+def _is_current_build(state: bytes | bytearray) -> bool:
+    return len(state) >= CURRENT_BUILD_MIN_STATE
+
+
+def _read_routings(state: bytes) -> list[Routing]:
+    sources = MOD_SOURCES if _is_current_build(state) else LEGACY_MOD_SOURCES
+    routings = []
+    for slot, offset in enumerate(_mod_record_offsets(state), start=1):
+        source, _aux, _menu, destination = struct.unpack_from("<HHHH", state, offset + MOD_ROUTE_AT)
+        if source == 0:
+            continue
+        _, amount, _ = struct.unpack_from("<fff", state, offset + MOD_AMOUNTS_AT)
+        routings.append(
+            Routing(
+                source=sources.get(source, f"Source {source} (older Serum build)"),
+                destination=(
+                    PARAMETERS[destination].name
+                    if destination < len(PARAMETERS)
+                    else f"Parameter {destination}"
+                ),
+                amount=round(amount * 100, 4),
+                bipolar=state[offset + MOD_BIPOLAR_AT] == 1,
+                slot=slot,
+            )
+        )
+    return routings
+
+
+def _write_routings(state: bytearray, routings: list[Routing]) -> None:
+    if not _is_current_build(state):
+        raise FxpError(
+            "routings can only be written onto a Preset saved by the current build, "
+            "not an older Serum build (it numbers sources differently)"
+        )
+    offsets = _mod_record_offsets(state)
+    if len(routings) > len(offsets):
+        raise FxpError(f"{len(routings)} routings, but the base Preset has {len(offsets)} slots")
+    for slot, offset in enumerate(offsets, start=1):
+        if slot <= len(routings):
+            routing = routings[slot - 1]
+            route = (*_route_ids(slot, routing),)
+            amount, bipolar = routing.amount / 100, routing.bipolar
+        else:
+            route, amount, bipolar = MOD_EMPTY_ROUTE, 0.0, False
+        # The first float mirrors the amount on a 0..1 scale (0.5 in empty slots).
+        struct.pack_into("<fff", state, offset + MOD_AMOUNTS_AT, (amount + 1) / 2, amount, 1.0)
+        state[offset + MOD_BIPOLAR_AT] = 1 if bipolar else 0
+        struct.pack_into("<HHHH", state, offset + MOD_ROUTE_AT, *route)
+        # The slot's amount and output knobs are also parameters.
+        amount_param, output_param = mod_slot_parameters(slot)
+        struct.pack_into(
+            "<f", state, _param_offset(amount_param.index), amount_param.encode(amount * 100)
+        )
+        struct.pack_into("<f", state, _param_offset(output_param.index), output_param.encode(100.0))
+
+
+def _route_ids(slot: int, routing: Routing) -> tuple[int, int, int, int]:
+    """(source id, aux source id, destination menu position, destination index)."""
+    source = MOD_SOURCE_IDS.get(routing.source)
+    if source is None:
+        raise FxpError(f"routing {slot}: {routing.source!r} is not a Serum modulation source")
+    param = PARAMETERS_BY_NAME.get(routing.destination)
+    if param is None or param.index not in MOD_DESTINATION_MENU:
+        raise FxpError(f"routing {slot}: {routing.destination!r} is not a writable destination")
+    if abs(routing.amount) > MOD_AMOUNT_LIMIT:
+        raise FxpError(f"routing {slot}: amount {routing.amount:g} is outside -100..100 %")
+    return source, 0, MOD_DESTINATION_MENU[param.index], param.index
 
 
 def _param_offset(index: int) -> int:

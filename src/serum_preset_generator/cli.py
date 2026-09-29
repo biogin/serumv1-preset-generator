@@ -78,4 +78,13 @@ def _inspect(path: Path) -> int:
         print(f"\n{module}")
         for param in params:
             print(f"  {param.name}: {param.format(patch.params[param.name])}")
+    print("\nModulation matrix")
+    for routing in patch.routings or []:
+        bipolar = " (bipolar)" if routing.bipolar else ""
+        print(
+            f"  {routing.slot}: {routing.source} → {routing.destination} "
+            f"{routing.amount:.1f} %{bipolar}"
+        )
+    if not patch.routings:
+        print("  (none)")
     return 0
