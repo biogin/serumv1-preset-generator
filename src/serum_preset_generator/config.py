@@ -78,3 +78,12 @@ def make_model() -> BaseChatModel:
         betas=["server-side-fallback-2026-07-01"],
         model_kwargs={"fallbacks": "default"},
     )
+
+
+def resolve(
+    model: BaseChatModel | None, config: DesignConfig | None
+) -> tuple[BaseChatModel, DesignConfig]:
+    """Fill in whatever the caller didn't inject from the environment (and `.env`)."""
+    if model is None or config is None:
+        load_environment()
+    return model or make_model(), config or load_design_config()

@@ -10,11 +10,13 @@ requires-python = ">=3.12"
 dependencies = [
     "langchain-anthropic>=1.7.5",
     "langgraph>=1.2.12",
+    "mcp>=2.2.0",
     "python-dotenv>=1.2.3",
 ]
 
 [project.scripts]
 serum-gen = "serum_preset_generator.cli:main"
+serum-gen-mcp = "serum_preset_generator.mcp_server:main"
 
 [build-system]
 requires = ["uv_build>=0.12.19,<0.13.0"]

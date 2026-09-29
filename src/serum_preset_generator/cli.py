@@ -8,9 +8,9 @@ from pathlib import Path
 from langchain_core.language_models import BaseChatModel
 
 from . import fxp
-from .constraints import label
 from .parameter_reference import parameters_by_module
 from .pipeline import DesignConfig, design_patch
+from .presentation import failure_text, success_text
 
 
 def main(
@@ -40,36 +40,15 @@ def main(
 
 
 def _design(description: str, model: BaseChatModel | None, config: DesignConfig | None) -> int:
-    if model is None or config is None:
-        # Imported lazily: loading it reads .env and builds the Anthropic client.
-        from .config import load_design_config, load_environment, make_model
+    # Imported lazily: loading config reads .env and builds the Anthropic client.
+    from .config import resolve
 
-        load_environment()
-        model = model or make_model()
-        config = config or load_design_config()
-
+    model, config = resolve(model, config)
     result = design_patch(description, model=model, config=config)
     if not result.validation.passed:
-        broken = [label(n) for n, ok in result.validation.constraints.items() if not ok]
-        print(
-            f"serum-gen: no valid patch after {result.validation.retries} retries:",
-            *(f"  - {e}" for e in result.validation.errors),
-            *([f"Constraints broken: {', '.join(broken)}"] if broken else []),
-            sep="\n",
-            file=sys.stderr,
-        )
+        print(f"serum-gen: {failure_text(result)}", file=sys.stderr)
         return 1
-
-    assert result.preset_path is not None  # a passed validation always writes one
-    print(result.recipe)
-    if result.validation.constraints:
-        kept = ", ".join(
-            f"{label(name)} {'✓' if ok else '✗'}"
-            for name, ok in result.validation.constraints.items()
-        )
-        print(f"\nConstraints: {kept}")
-    print(f"\nPreset: {result.preset_path}")
-    print(f"In Serum's browser: User / {result.preset_path.parent.name} ({result.model})")
+    print(success_text(result))
     return 0
 
 
