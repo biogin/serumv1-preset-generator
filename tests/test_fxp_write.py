@@ -1,13 +1,12 @@
-from importlib.resources import files
-
 import pytest
 
 from serum_preset_generator import fxp
+from serum_preset_generator.config import default_template
 from serum_preset_generator.patch import Patch
 
 
 def init_template() -> bytes:
-    return files("serum_preset_generator").joinpath("templates/init.fxp").read_bytes()
+    return default_template()
 
 
 def test_rewriting_every_factory_preset_reproduces_its_bytes(factory_library):
