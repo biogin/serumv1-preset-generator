@@ -129,7 +129,7 @@ I use it by chatting in Claude Desktop or Claude Code, which call the tool's `de
 
 - Serum 1.368 is installed (VST, VST3, AU). The factory library, including `Serum_Manual.pdf`, is at `/Library/Audio/Presets/Xfer Records/Serum Presets/`. The presets folder is world-writable and already has an empty `User/` subfolder.
 - **Owner action needed:** save an Init preset from Serum (menu → Init Preset → Save As) for the codec's write template. No plain Init `.fxp` exists in the factory library.
-- **To verify early:** whether Serum 1's browser shows new files while it's open, or needs a rescan or reopening the plugin. Record the answer in the MCP/CLI output note.
+- **Verified 2026-09-29 (ticket 02):** Serum 1's browser shows a newly written Preset immediately while Serum is open, with no rescan or reopening needed. The MCP/CLI output note only has to say where to find it (`User/AI`).
 - Local-model quality on 16 GB will trail Sonnet noticeably. The validator and constrained output are the mitigation, and the test set measures the gap.
 - References:
   - https://github.com/btesser/serum2vital (docs/FORMATS.md, tools/craft_fxp.py)

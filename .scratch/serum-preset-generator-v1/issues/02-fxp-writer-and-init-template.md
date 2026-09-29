@@ -6,14 +6,14 @@ Owner action first: save an Init preset from Serum (menu → Init Preset → Sav
 
 **Blocked by:** 01 (Project setup and `.fxp` reader); the owner's saved Init preset
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] Byte round-trip: read → write is identical for every installed factory preset (skipped when the library isn't present)
 - [x] An empty Patch written on the Init template reproduces the template's bytes
 - [x] Editing one parameter, writing and reading back changes only that parameter
 - [x] The two zlib streams and the trailer are written correctly, so Serum doesn't silently fall back to Init
-- [ ] Manual check: a Preset with a changed filter cutoff and Osc A wavetable loads in Serum 1 and shows those values
-- [ ] Serum's rescan behaviour for new files is recorded in the spec's Further Notes
+- [x] Manual check: a Preset with a changed filter cutoff and Osc A wavetable loads in Serum 1 and shows those values
+- [x] Serum's rescan behaviour for new files is recorded in the spec's Further Notes
 
 ## Comments
 
@@ -25,3 +25,5 @@ Owner action first: save an Init preset from Serum (menu → Init Preset → Sav
 - Out-of-range values and unknown parameter or option names are rejected, as are preset names Serum can't store (more than 31 characters, or non-latin-1 such as Cyrillic). The pipeline (ticket 03) must transliterate Russian names.
 - **Still open, needs the owner:** load `User/AI Writer Test` in Serum (German LP, ~1200 Hz, 40 % reso, Osc A = PWM Juno), play a note, and report whether new files show up without a rescan. Then record the rescan answer in the spec's Further Notes.
 - Unverified: setting a wavetable only swaps its name string. If Serum needs table data in the second stream, the manual check will show it.
+- 2026-09-29: owner loaded `User/AI Writer Test` in Serum 1.368. German LP, ~1200 Hz, 40 % reso and Osc A = PWM Juno all correct, and it sounds normal. So Serum loads a factory wavetable from its name alone, with an empty second stream.
+- 2026-09-29: new Presets show up in Serum's open browser right away, with no rescan. Recorded in the spec's Further Notes.
