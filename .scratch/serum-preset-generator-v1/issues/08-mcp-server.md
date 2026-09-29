@@ -4,11 +4,24 @@
 
 **Blocked by:** 03 (Tracer bullet)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] The MCP server starts over stdio and lists exactly one tool, `design_patch`, with a clear description and input schema
-- [ ] Calling `design_patch` runs the pipeline and returns the Patch Recipe, the Preset path, the model and the Serum browser note
-- [ ] Validation failures come back as a readable tool result, not a crash
-- [ ] Setup instructions (in the README) register the server in Claude Desktop and Claude Code
-- [ ] Smoke test: an in-process MCP client calls `design_patch` with the fake model and gets a result
+- [x] The MCP server starts over stdio and lists exactly one tool, `design_patch`, with a clear description and input schema
+- [x] Calling `design_patch` runs the pipeline and returns the Patch Recipe, the Preset path, the model and the Serum browser note
+- [x] Validation failures come back as a readable tool result, not a crash
+- [x] Setup instructions (in the README) register the server in Claude Desktop and Claude Code
+- [x] Smoke test: an in-process MCP client calls `design_patch` with the fake model and gets a result
 - [ ] Manual check: a request from Claude Desktop produces a Preset that appears in Serum's `User/AI` folder
+
+## Comments
+
+- Implemented with the `mcp` 2.2.0 SDK (`MCPServer`; FastMCP was renamed in 2.x). The `serum-gen-mcp` entry point serves one tool, `design_patch(sound_description)`, over stdio.
+- The CLI and the MCP tool share their output text (`presentation.py`) and environment loading (`config.resolve`). `.env` is read from the project folder, so the client needs no key in its environment.
+- Error handling:
+  - validation failures come back as a readable tool error;
+  - setup, API and file errors (missing key, bad `SERUM_GEN_*`, unwritable folder) come back with their reason, not the SDK's bare "Error executing tool".
+- Verified: launched by absolute `uv` path from another working directory, it serves over stdio and lists exactly one tool.
+- Registered 2026-09-29, with the owner's approval:
+  - Claude Code: `claude mcp add serum-gen --scope user`; `claude mcp list` shows it ✔ Connected.
+  - Claude Desktop: added to `claude_desktop_config.json`; the original is backed up as `claude_desktop_config.json.bak-serum-gen-2026-09-29`.
+- **Still open, needs the owner:** restart Claude Desktop and ask it for a preset; the Preset should appear in `User/AI`.
