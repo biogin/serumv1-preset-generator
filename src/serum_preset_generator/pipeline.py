@@ -18,7 +18,7 @@ from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 
 from . import fxp
-from .parameter_reference import PARAMETERS, Scale
+from .parameter_reference import parameters_by_module
 from .patch import Patch
 from .validator import validate
 
@@ -109,6 +109,7 @@ def design_patch(
 def _build_graph(model: BaseChatModel, config: DesignConfig):  # type: ignore[no-untyped-def]
     planner = model.with_structured_output(Brief, method="json_schema")
     drafter = model.with_structured_output(Draft, method="json_schema", include_raw=True)
+    init = fxp.read(config.template)
 
     def plan(state: _State) -> _State:
         brief = planner.invoke(_plan_messages(state["description"]))
@@ -120,7 +121,11 @@ def _build_graph(model: BaseChatModel, config: DesignConfig):  # type: ignore[no
         attempt = state["draft_count"] + 1
         out = drafter.invoke(
             _draft_messages(
-                state["description"], state["brief"], state.get("errors", []), config.wavetables
+                state["description"],
+                state["brief"],
+                state.get("errors", []),
+                config.wavetables,
+                init,
             )
         )
         assert isinstance(out, dict)
@@ -189,8 +194,14 @@ in Latin letters (transliterate if the description is in Russian)."""
 _DRAFT_SYSTEM = """\
 You are a sound designer programming Xfer Serum 1 (v1.368). Turn the brief into
 concrete parameter values. You may only set the parameters listed in the Parameter
-Reference below, within their ranges or options; everything you don't set stays
-at Serum's Init value (one saw-like default oscillator, MG Low 12 filter).
+Reference below, within their ranges or options; everything you don't set keeps
+the Init value shown next to it.
+
+Modules are switched off in Init unless shown as On. A module only sounds when
+you switch it on: the filter needs "Filter On", Osc B "Osc B On", the sub
+oscillator "Osc S On", noise "Osc N On", and each effect its "<name> Enable" in
+FX Rack. Route an oscillator through the filter with its "Osc?>Fil" switch.
+Tempo-synced knobs (LFO rates, delay times) take note values such as 1/4.
 
 Also write the Patch Recipe: step-by-step instructions, module by module, that
 a producer could follow in Serum's interface, with a short reason for each
@@ -210,10 +221,14 @@ def _plan_messages(description: str) -> list[BaseMessage]:
 
 
 def _draft_messages(
-    description: str, brief: Brief, errors: list[str], wavetables: frozenset[str] | None
+    description: str,
+    brief: Brief,
+    errors: list[str],
+    wavetables: frozenset[str] | None,
+    init: Patch,
 ) -> list[BaseMessage]:
     system = _DRAFT_SYSTEM.format(
-        reference=_reference_text(),
+        reference=_reference_text(init),
         wavetables="\n".join(sorted(wavetables)) if wavetables else "(any factory wavetable)",
     )
     request = f"Sound Description:\n{description}\n\nBrief:\n{brief.model_dump_json(indent=2)}"
@@ -228,14 +243,18 @@ def _draft_messages(
     ]
 
 
-def _reference_text() -> str:
-    lines = []
-    for p in PARAMETERS:
-        if p.scale is Scale.OPTIONS:
-            lines.append(f"- {p.name}: one of {', '.join(p.options)}")
-        else:
-            lines.append(f"- {p.name}: {p.minimum:g} to {p.maximum:g} {p.unit}".rstrip())
-    return "\n".join(lines)
+def _reference_text(init: Patch) -> str:
+    """The designable parameters by module, with allowed values and Init values."""
+    sections = []
+    for module, params in parameters_by_module().items():
+        designable = [p for p in params if p.designable]
+        if designable:
+            lines = [f"{module}:"] + [
+                f"- {p.name}: {p.describe()} (Init: {p.format(init.params[p.name])})"
+                for p in designable
+            ]
+            sections.append("\n".join(lines))
+    return "\n\n".join(sections)
 
 
 def _to_patch(draft: Draft, name: str) -> Patch:

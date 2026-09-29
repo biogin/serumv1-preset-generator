@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 from fake_model import ScriptedModel
 
@@ -125,3 +127,49 @@ def test_numbered_names_still_fit_serums_31_characters(config):
 
     assert len(result.preset_path.stem) <= 31
     assert fxp.read(result.preset_path.read_bytes()).name == result.preset_path.stem
+
+
+def test_a_draft_can_use_any_module_in_the_reference(config):
+    draft = valid_draft(
+        values=[
+            ParameterValue(name="A Unison", value=7),
+            ParameterValue(name="A UniDet", value=0.3),
+            ParameterValue(name="Filter On", value="On"),
+            ParameterValue(name="Dist Enable", value="On"),
+            ParameterValue(name="Dist_Mode", value="Diode 1"),
+            ParameterValue(name="Dist_Drv", value=60.0),
+            ParameterValue(name="Env1 Rel", value=0.4),
+            ParameterValue(name="Dly_TimL", value="1/8"),
+        ]
+    )
+
+    result = design_patch("bass", model=ScriptedModel([brief(), draft]), config=config)
+
+    written = fxp.read(result.preset_path.read_bytes()).params
+    assert written["A Unison"] == 7
+    assert written["A UniDet"] == pytest.approx(0.3, rel=1e-3)
+    assert (written["Filter On"], written["Dist Enable"]) == ("On", "On")
+    assert written["Dist_Mode"] == "Diode 1"
+    assert written["Env1 Rel"] == pytest.approx(0.4, rel=1e-3)
+    assert written["Dly_TimL"] == "1/8"
+
+
+def test_the_model_sees_every_module_and_init_values(config):
+    model = ScriptedModel([brief(), valid_draft()])
+
+    design_patch("bass", model=model, config=config)
+
+    prompt = model.prompts[1]
+    assert "FX Distortion:" in prompt and "- Dist_Mode: one of: Tube, SoftClip" in prompt
+    assert "- Filter On: one of: Off, On (Init: Off)" in prompt
+    assert "Mod 1 amt" not in prompt  # the mod matrix arrives with ticket 05
+
+
+def test_parameters_outside_the_design_scope_are_rejected(config):
+    draft = valid_draft(values=[ParameterValue(name="Mod 1 amt", value=50.0)])
+    model = ScriptedModel([brief(), draft])
+
+    result = design_patch("bass", model=model, config=replace(config, max_retries=0))
+
+    assert not result.validation.passed
+    assert any("Mod 1 amt" in e for e in result.validation.errors)

@@ -8,7 +8,7 @@ from pathlib import Path
 from langchain_core.language_models import BaseChatModel
 
 from . import fxp
-from .parameter_reference import PARAMETERS
+from .parameter_reference import parameters_by_module
 from .pipeline import DesignConfig, design_patch
 
 
@@ -72,10 +72,10 @@ def _inspect(path: Path) -> int:
         return 1
 
     print(patch.name)
-    for param in PARAMETERS:
-        value = patch.params[param.name]
-        shown = value if isinstance(value, str) else f"{value:.1f} {param.unit}".rstrip()
-        print(f"  {param.name}: {shown}")
     print(f"  Osc A wavetable: {patch.wavetable_a or '(default)'}")
     print(f"  Osc B wavetable: {patch.wavetable_b or '(default)'}")
+    for module, params in parameters_by_module().items():
+        print(f"\n{module}")
+        for param in params:
+            print(f"  {param.name}: {param.format(patch.params[param.name])}")
     return 0

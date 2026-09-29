@@ -12,7 +12,6 @@ DesignConfig (all optional):
 """
 
 import os
-from importlib.resources import files
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -20,6 +19,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import BaseChatModel
 
 from .pipeline import DesignConfig
+from .resources import default_template
 
 DEFAULT_SERUM_ROOT = Path("/Library/Audio/Presets/Xfer Records/Serum Presets")
 DEFAULT_MODEL = "claude-sonnet-5-5"
@@ -28,11 +28,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 class ConfigError(ValueError):
     """The environment asks for something this build can't do."""
-
-
-def default_template() -> bytes:
-    """The owner's Init preset from Serum 1.368, shipped with the package."""
-    return files("serum_preset_generator").joinpath("templates/init.fxp").read_bytes()
 
 
 def load_environment() -> None:

@@ -8,10 +8,15 @@ def test_inspect_prints_preset_parameters_in_human_units(factory_library, capsys
     assert exit_code == 0
     assert "BA Ampology [CFA]" in out
     assert "Fil Type: German LP" in out
-    assert "Fil Cutoff: 75.1 Hz" in out
-    assert "MasterVol: 70.0 %" in out
+    assert "Fil Cutoff: 75.09 Hz" in out
+    assert "MasterVol: 70 %" in out
     assert "Osc A wavetable: Digital/Kream.wav" in out
     assert "Osc B wavetable: (default)" in out
+    # the full Parameter Reference, grouped by module
+    assert "\nFX Distortion\n" in out
+    assert "  Dist_Mode: " in out
+    assert "  LFO8 Delay: 0 s" in out
+    assert "  Filter On: " in out
 
 
 def test_inspect_reports_unreadable_file_without_traceback(tmp_path, capsys):

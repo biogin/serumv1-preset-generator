@@ -12,13 +12,14 @@ size at 0x38 the chunk's length. Serum silently loads Init when any of these
 are wrong (ADR 0001).
 """
 
-import math
 import struct
 import zlib
 from dataclasses import dataclass
+from functools import cache
 
-from .parameter_reference import PARAMETERS, PARAMETERS_BY_NAME, Parameter, Scale
+from .parameter_reference import PARAMETERS, PARAMETERS_BY_NAME, Parameter
 from .patch import Patch
+from .resources import default_template
 
 HEADER_SIZE = 0x3C
 OFF_FILE_SIZE = 0x04
@@ -26,8 +27,15 @@ OFF_PROGRAM_NAME = 0x1C
 PROGRAM_NAME_SIZE = 28  # the host-facing copy; may fill all 28 bytes with no NUL
 OFF_CHUNK_SIZE = 0x38
 STATE_COMPRESSION_LEVEL = 1
-# Parameters 0-227; 228-298 live in a second block that no starter parameter needs yet.
 OFF_PARAMS_0_227 = 0x3460
+# Serum grew past 228 parameters after the format was fixed, so 228-298 live in
+# a second block. Older builds wrote less of it (or none), and left junk in the
+# part they didn't use: by state size, the index from which values can't be
+# trusted and Serum's defaults apply instead (FORMATS.md, checked by serum2vital
+# against the plugin's own read-back).
+OFF_PARAMS_228_298 = 0x4AE0
+FIRST_SECOND_BLOCK_INDEX = 228
+UNTRUSTED_FROM_BY_STATE_SIZE = ((21000, 228), (28000, 260), (33000, 273))  # (size, index)
 OFF_WAVETABLE_A = 0x3C08
 OFF_WAVETABLE_B = 0x3E08
 WAVETABLE_NAME_SIZE = 512
@@ -66,6 +74,8 @@ def write(patch: Patch, base: bytes) -> bytes:
             raise FxpError(f"unknown parameter {name!r}")
         param = PARAMETERS_BY_NAME[name]
         if value != base_patch.params.get(name):
+            if len(state) < _param_offset(param.index) + 4:
+                raise FxpError(f"{name}: the base Preset predates this parameter")
             struct.pack_into("<f", state, _param_offset(param.index), _encode(param, value))
 
     if patch.name != base_patch.name:
@@ -89,7 +99,7 @@ def write(patch: Patch, base: bytes) -> bytes:
 def _patch_from_state(state: bytes) -> Patch:
     return Patch(
         name=_cstring(state, OFF_PRESET_NAME, PRESET_NAME_SIZE).strip(),
-        params={p.name: _display(p, _stored(state, p.index)) for p in PARAMETERS},
+        params={p.name: _display(p, _stored_or_default(state, p.index)) for p in PARAMETERS},
         wavetable_a=_cstring(state, OFF_WAVETABLE_A, WAVETABLE_NAME_SIZE) or None,
         wavetable_b=_cstring(state, OFF_WAVETABLE_B, WAVETABLE_NAME_SIZE) or None,
     )
@@ -119,7 +129,9 @@ def _unpack(data: bytes) -> _Container:
 
 
 def _param_offset(index: int) -> int:
-    return OFF_PARAMS_0_227 + 4 * index
+    if index < FIRST_SECOND_BLOCK_INDEX:
+        return OFF_PARAMS_0_227 + 4 * index
+    return OFF_PARAMS_228_298 + 4 * (index - FIRST_SECOND_BLOCK_INDEX)
 
 
 def _stored(state: bytes, index: int) -> float:
@@ -127,38 +139,34 @@ def _stored(state: bytes, index: int) -> float:
     return float(value)
 
 
-def _encode(param: Parameter, value: float | str) -> float:
-    if param.scale is Scale.OPTIONS:
-        if value not in param.options:
-            raise FxpError(f"{param.name}: {value!r} is not one of Serum's options")
-        return param.options.index(str(value)) / (len(param.options) - 1)
-    if isinstance(value, str) or not param.minimum <= value <= param.maximum:
-        raise FxpError(
-            f"{param.name}: {value!r} is outside {param.minimum:g}..{param.maximum:g} {param.unit}"
-        )
-    if param.scale is Scale.LINEAR:
-        return (value - param.minimum) / (param.maximum - param.minimum)
-    if param.scale is Scale.EXPONENTIAL:
-        return math.log(value / param.minimum) / math.log(param.maximum / param.minimum)
-    raise NotImplementedError(param.scale)
+def _stored_or_default(state: bytes, index: int) -> float:
+    untrusted_from = next(
+        (first for size, first in UNTRUSTED_FROM_BY_STATE_SIZE if len(state) < size), None
+    )
+    if untrusted_from is not None and index >= untrusted_from:
+        return _init_state_values()[index]
+    return _stored(state, index)
+
+
+@cache
+def _init_state_values() -> tuple[float, ...]:
+    """Serum's defaults: the stored values of the packaged Init preset (Serum 1.368)."""
+    state = _unpack(default_template()).state
+    return tuple(_stored(state, index) for index in range(len(PARAMETERS)))
 
 
 def _display(param: Parameter, stored: float) -> float | str:
-    if param.scale is Scale.LINEAR:
-        return param.minimum + (param.maximum - param.minimum) * stored
-    if param.scale is Scale.EXPONENTIAL:
-        return float(param.minimum * (param.maximum / param.minimum) ** stored)
-    if param.scale is Scale.OPTIONS:
-        return param.options[_option_index(param, stored)]
-    raise NotImplementedError(param.scale)
+    try:
+        return param.display(stored)
+    except ValueError as e:
+        raise FxpError(f"{param.name}: {e}") from e
 
 
-def _option_index(param: Parameter, stored: float) -> int:
-    for divisor in (len(param.options) - 1, *param.legacy_divisors):
-        scaled = stored * divisor
-        if abs(scaled - round(scaled)) < 1e-3:
-            return round(scaled)
-    raise FxpError(f"{param.name}: stored value {stored} matches no known option")
+def _encode(param: Parameter, value: float | str) -> float:
+    try:
+        return param.encode(value)
+    except ValueError as e:
+        raise FxpError(f"{param.name}: {e}") from e
 
 
 def _put_text(
