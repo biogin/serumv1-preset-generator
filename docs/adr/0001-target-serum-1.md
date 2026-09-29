@@ -1,0 +1,3 @@
+# Target Serum 1 (.fxp), not Serum 2
+
+We generate presets for Serum 1 (v1.368) because that is the version the owner has and uses daily. This holds even though Serum 2's `.SerumPreset` format (zstd-compressed CBOR with named parameters in real units) is much easier to generate and Serum 2 can import `.fxp`. The cost is a hand-written, byte-level `.fxp` reader/writer: a VST2 opaque chunk holding two zlib streams plus a trailer, 299 normalised float parameters at fixed offsets, and 40-byte mod-matrix records. `btesser/serum2vital`'s `docs/FORMATS.md` serves as the spec. The writer and the parameter reference are Serum 1–specific, so moving to Serum 2 later means replacing them, not extending them.
