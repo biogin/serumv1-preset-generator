@@ -4,14 +4,14 @@
 
 **Blocked by:** 03 (Tracer bullet)
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] The MCP server starts over stdio and lists exactly one tool, `design_patch`, with a clear description and input schema
 - [x] Calling `design_patch` runs the pipeline and returns the Patch Recipe, the Preset path, the model and the Serum browser note
 - [x] Validation failures come back as a readable tool result, not a crash
 - [x] Setup instructions (in the README) register the server in Claude Desktop and Claude Code
 - [x] Smoke test: an in-process MCP client calls `design_patch` with the fake model and gets a result
-- [ ] Manual check: a request from Claude Desktop produces a Preset that appears in Serum's `User/AI` folder
+- [x] Manual check: a request from Claude Desktop produces a Preset that appears in Serum's `User/AI` folder
 
 ## Comments
 
@@ -25,3 +25,4 @@
   - Claude Code: `claude mcp add serum-gen --scope user`; `claude mcp list` shows it ✔ Connected.
   - Claude Desktop: added to `claude_desktop_config.json`; the original is backed up as `claude_desktop_config.json.bak-serum-gen-2026-09-29`.
 - **Still open, needs the owner:** restart Claude Desktop and ask it for a preset; the Preset should appear in `User/AI`.
+- 2026-09-29: owner asked Claude Desktop for a preset. It worked end to end.
