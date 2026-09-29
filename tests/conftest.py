@@ -5,6 +5,8 @@ import pytest
 
 from serum_preset_generator import fxp
 from serum_preset_generator.patch import Patch
+from serum_preset_generator.pipeline import DesignConfig
+from serum_preset_generator.resources import default_template
 
 FACTORY_LIBRARY = Path("/Library/Audio/Presets/Xfer Records/Serum Presets/Presets")
 
@@ -23,3 +25,13 @@ def read_factory(factory_library: Path) -> Callable[[str], Patch]:
         return fxp.read((factory_library / relative).read_bytes())
 
     return read
+
+
+@pytest.fixture
+def config(tmp_path):
+    return DesignConfig(
+        output_dir=tmp_path / "AI",
+        template=default_template(),
+        max_retries=3,
+        wavetables=frozenset({"Analog/PWM Juno.wav", "Digital/Kream.wav"}),
+    )

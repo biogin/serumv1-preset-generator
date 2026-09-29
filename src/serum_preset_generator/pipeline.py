@@ -8,7 +8,7 @@ import logging
 import re
 import unicodedata
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Literal, TypedDict
 
@@ -18,6 +18,8 @@ from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 
 from . import fxp
+from .constraints import CONSTRAINTS, Constraint
+from .constraints import check as check_constraint
 from .parameter_reference import (
     DESIGNABLE_MOD_SOURCES,
     MOD_DESTINATIONS,
@@ -39,6 +41,11 @@ class Brief(BaseModel):
     language: Literal["en", "ru"] = Field(description="Language of the Sound Description")
     preset_name: str = Field(
         description="Short preset name in Latin letters (transliterate Russian), max 31 chars"
+    )
+    constraints: list[Constraint] = Field(
+        default_factory=list,
+        description="Hard requirements the Sound Description states; only these: "
+        + "; ".join(f"{name} = {c.meaning}" for name, c in CONSTRAINTS.items()),
     )
 
 
@@ -83,6 +90,9 @@ class ValidationReport:
     passed: bool
     retries: int
     errors: list[str] = field(default_factory=list)
+    # Each constraint from the brief, and whether the last draft kept it. Empty
+    # when the last draft failed before its constraints could be checked.
+    constraints: dict[Constraint, bool] = field(default_factory=dict)
 
 
 @dataclass
@@ -100,6 +110,7 @@ class _State(TypedDict, total=False):
     parse_error: str
     served_by: str  # the model that actually answered the latest draft
     errors: list[str]
+    constraint_results: dict[Constraint, bool]
     draft_count: int
     preset_path: Path
 
@@ -116,7 +127,10 @@ def design_patch(
         preset_path=state.get("preset_path"),
         model=state.get("served_by") or _model_name(model),
         validation=ValidationReport(
-            passed=not errors, retries=state["draft_count"] - 1, errors=errors
+            passed=not errors,
+            retries=state["draft_count"] - 1,
+            errors=errors,
+            constraints=state.get("constraint_results", {}),
         ),
     )
 
@@ -161,12 +175,21 @@ def _build_graph(model: BaseChatModel, config: DesignConfig):  # type: ignore[no
 
     def validate_draft(state: _State) -> _State:
         proposal = state["draft"]
+        constraints = state["brief"].constraints
         if proposal is None:
             errors = [f"the response didn't match the required JSON schema: {state['parse_error']}"]
-        else:
-            errors = validate(_to_patch(proposal, "draft"), config.wavetables)
+            return {"errors": errors, "constraint_results": {}}
+        patch = _to_patch(proposal, "draft")
+        errors = validate(patch, config.wavetables)
+        results: dict[Constraint, bool] = {}
+        if not errors:  # constraints only make sense for a Patch Serum can hold
+            whole = replace(patch, params={**init.params, **patch.params})
+            for constraint in constraints:
+                problems = check_constraint(constraint, whole)
+                results[constraint] = not problems
+                errors += problems
         log.info("validate draft %d: %s", state["draft_count"], errors or "ok")
-        return {"errors": errors}
+        return {"errors": errors, "constraint_results": results}
 
     def write(state: _State) -> _State:
         proposal = state["draft"]
@@ -204,7 +227,11 @@ _PLAN_SYSTEM = """\
 You are a sound designer helping a producer program Xfer Serum 1.
 Read the producer's Sound Description and summarise it as a brief: the sound's
 category, its character, the language it is written in, and a short preset name
-in Latin letters (transliterate if the description is in Russian)."""
+in Latin letters (transliterate if the description is in Russian).
+
+Also list the constraints the description clearly demands, using only the
+defined names ({constraint_names}). Leave the list empty if it demands none;
+don't infer constraints it doesn't state."""
 
 _DRAFT_SYSTEM = """\
 You are a sound designer programming Xfer Serum 1 (v1.368). Turn the brief into
@@ -244,7 +271,8 @@ Oscillator wavetables: use one of these factory wavetables, or null for Serum's 
 
 
 def _plan_messages(description: str) -> list[BaseMessage]:
-    return [SystemMessage(_PLAN_SYSTEM), HumanMessage(f"Sound Description:\n{description}")]
+    system = _PLAN_SYSTEM.format(constraint_names=", ".join(CONSTRAINTS))
+    return [SystemMessage(system), HumanMessage(f"Sound Description:\n{description}")]
 
 
 def _draft_messages(

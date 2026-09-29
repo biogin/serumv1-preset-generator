@@ -4,10 +4,8 @@ import pytest
 from fake_model import ScriptedModel
 
 from serum_preset_generator import fxp
-from serum_preset_generator.config import default_template
 from serum_preset_generator.pipeline import (
     Brief,
-    DesignConfig,
     Draft,
     ParameterValue,
     RoutingDraft,
@@ -15,19 +13,9 @@ from serum_preset_generator.pipeline import (
 )
 
 
-@pytest.fixture
-def config(tmp_path):
-    return DesignConfig(
-        output_dir=tmp_path / "AI",
-        template=default_template(),
-        max_retries=3,
-        wavetables=frozenset({"Analog/PWM Juno.wav", "Digital/Kream.wav"}),
-    )
-
-
-def brief(name="Cyber Bass", language="en"):
+def brief(name="Cyber Bass", language="en", constraints=()):
     return Brief(category="bass", character="aggressive, overdriven", language=language,
-                 preset_name=name)  # fmt: skip
+                 preset_name=name, constraints=list(constraints))  # fmt: skip
 
 
 def valid_draft(**overrides):

@@ -90,3 +90,17 @@ def test_inspect_lists_the_mod_matrix(factory_library, capsys):
     out = capsys.readouterr().out
     assert "\nModulation matrix\n" in out
     assert "  1: LFO 1 → Fil Cutoff 48.9 %" in out
+
+
+def test_design_reports_each_constraint(tmp_path, capsys):
+    from fake_model import ScriptedModel
+    from test_design_patch import brief, valid_draft
+
+    from serum_preset_generator.pipeline import DesignConfig
+
+    config = DesignConfig(output_dir=tmp_path, template=_init_template())
+    model = ScriptedModel([brief(constraints=["no_reverb"]), valid_draft()])
+
+    cli.main(["dry", "bass"], model=model, config=config)
+
+    assert "Constraints: no reverb ✓" in capsys.readouterr().out

@@ -20,6 +20,10 @@ _Avoid_: sound, settings, state
 One modulation-matrix slot: a modulation source (an LFO, envelope, macro...) moving a destination parameter by an amount from -100 to 100 %, optionally bipolar. A Patch holds up to 32, in slot order.
 _Avoid_: mod, connection, mod slot
 
+**Constraint**:
+A hard requirement a Sound Description explicitly states (clean sub, no reverb, no distortion, mono), checked by code against the whole Patch before a Preset is written.
+_Avoid_: rule, requirement
+
 **Preset**:
 A Serum 1 `.fxp` file that loads the patch directly in Serum's browser.
 _Avoid_: patch file, fxp (in prose)
