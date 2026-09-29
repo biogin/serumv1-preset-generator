@@ -22,3 +22,7 @@ A short summary compares the two models.
 - [ ] The results file has one row per case with validity, read-back, retries, constraint results, model, time and an empty ear-rating column
 - [ ] Generated Presets from a test run go to a separate output folder, not the real `User/AI` folder, unless asked
 - [ ] A summary (valid rate, mean retries, constraint pass rate, mean time) per model, suitable for the README
+
+## Comments
+
+- 2026-09-29, from ticket 10: add Revision cases too, starting with "PR 808 Kick Circuit [SD]" + "hit harder". The owner found that Revision not clearly harder, while "Biggest Hard 808" + "hit harder" worked. It's a good probe of whether the model knows what makes an 808 hit (transient, pitch envelope, loudness) versus what merely changes it.
