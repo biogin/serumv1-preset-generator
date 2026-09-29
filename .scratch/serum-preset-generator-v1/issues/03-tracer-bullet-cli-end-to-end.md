@@ -12,7 +12,7 @@ This ticket introduces the pipeline seam, `design_patch(sound_description)`, whi
 
 **Blocked by:** 02 (`.fxp` writer and the Init template)
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] `serum-gen "<sound description>"` prints the Patch Recipe and the Preset's full path
 - [x] The Preset is written to the configured output folder (default Serum's `Presets/User/AI`, created if missing), with a file name and preset name derived from the Sound Description
@@ -23,7 +23,7 @@ This ticket introduces the pipeline seam, `design_patch(sound_description)`, whi
 - [x] Config covers model provider/name, API key from the environment, output folder, Init template location and retry limit
 - [x] Seam tests with a scripted fake chat model and a temp output folder cover: valid draft → Preset reads back as the same Patch; invalid draft → retry with errors; retries exhausted → no Preset; collision naming
 - [x] Each pipeline step (plan, each draft, each validation result, write) is traceable in logs
-- [ ] Manual check: one generated Preset loads in Serum 1
+- [x] Manual check: one generated Preset loads in Serum 1
 
 ## Comments
 
@@ -42,3 +42,4 @@ This ticket introduces the pipeline seam, `design_patch(sound_description)`, whi
   - Presets are created exclusively (never overwrite), and numbered names are trimmed to fit 31 characters.
 - `serum-gen inspect <file.fxp>` still inspects; any other description starting with "inspect" is designed.
 - **Still open, needs the owner:** load one generated Preset from `User/AI` in Serum 1.
+- 2026-09-29: owner loaded `Cyberpunk Clean Sub Drive` and `Tyomnyy Myagkiy Ambient Pad` in Serum 1. Both load and play fine.
