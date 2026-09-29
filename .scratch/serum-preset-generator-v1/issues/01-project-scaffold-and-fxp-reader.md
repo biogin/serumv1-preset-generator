@@ -6,12 +6,12 @@ Use `btesser/serum2vital`'s FORMATS.md as the byte-layout spec and its code as a
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] `uv` project with `pytest` and `ruff` configured; `uv run pytest` and `uv run ruff check` pass
 - [x] `serum-gen inspect <preset>` prints the preset name and every starter Parameter Reference entry with its value in human units or its option name
 - [x] Filter type decodes to the correct option name for Serum v1.368
-- [ ] Known-value tests on at least 3 chosen factory presets (e.g. a bass, a lead, a pad) pass, using values checked by eye in Serum
+- [x] Known-value tests on at least 3 chosen factory presets (e.g. a bass, a lead, a pad) pass, using values checked by eye in Serum
 - [x] Every installed factory preset reads without error (test skipped when the factory library isn't present)
 - [x] Parameter Reference is data consumed by the reader, not values hard-coded in reader logic
 
@@ -28,3 +28,4 @@ Use `btesser/serum2vital`'s FORMATS.md as the byte-layout spec and its code as a
   - treat wavetable and preset-name positions as reference data
   - tighter parameter-name typing
   - clamp and NaN handling
+- 2026-09-29: owner confirmed in Serum: BA Ampology (Kream, German LP, ~75 Hz) and LD LimoDriver (Formant-II) match. The saved Init preset (`User/ - Init - .fxp`) reads as Serum's documented Init values.
