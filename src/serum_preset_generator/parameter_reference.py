@@ -303,8 +303,7 @@ UNISON_STACK = Options(
      "Center-12", "Center-24")
 )  # fmt: skip
 # Stored as index / 5 in every factory preset. Serum's captured menu lists only
-# five names (no Triangle); this order is the sub oscillator's own. UNVERIFIED
-# for "Triangle": confirm by ear/eye in Serum (see ticket 04).
+# five names (no Triangle); the owner confirmed this order in Serum (ticket 04).
 SUB_SHAPES = Options(("Sine", "RoundRect", "Triangle", "Saw", "Square", "Pulse"))
 EQ_TYPES = Options(("Shelf", "Peak", "LPF"))
 DELAY_MODES = Options(("Normal", "Ping-Pong", "Tap->Delay"))

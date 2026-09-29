@@ -13,10 +13,10 @@ Each entry has Serum's on-screen name, the module, the value type (range with un
 
 **Blocked by:** 02 (`.fxp` writer and the Init template). Can run in parallel with 03.
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] All 299 parameters present, with names matching Serum's on-screen labels, not the older gist's wrong names
-- [ ] Option lists (filter types, warp modes, FX types, etc.) and continuous ranges with units are correct for v1.368
+- [x] Option lists (filter types, warp modes, FX types, etc.) and continuous ranges with units are correct for v1.368
 - [x] Factory wavetable names come from the installed library, and the validator rejects unknown wavetables
 - [x] Known-value tests on factory presets cover each module group (oscillators, filter, envelopes, LFOs, FX, macros)
 - [x] `serum-gen inspect` shows the full parameter set
@@ -42,3 +42,4 @@ Each entry has Serum's on-screen name, the module, the value type (range with un
   - **SubOscShape:** stored as index/5 (six shapes), but Serum's captured menu lists five names. "Triangle" was inserted at index 2 from memory. Check `Bass/BA D_Bass 2 [DU]` (expect Triangle) and `Bass/BA D_Bass 1 [DU]` (expect Saw).
   - Load `User/AI/Cyberpunk Drive Bass` (live run: unison, Osc B, sub, noise, filter, envelopes, Distortion, EQ, Compressor).
 - Live run note: the recipe claimed "OscS>Fil Off" keeps the sub clean, but the FX rack still distorts it. Catching this is ticket 06's job.
+- 2026-09-29: owner confirmed in Serum. BA D_Bass 2 = Triangle and BA D_Bass 1 = Saw, so the SubOscShape order is verified. `Cyberpunk Drive Bass` loads and plays fine.
