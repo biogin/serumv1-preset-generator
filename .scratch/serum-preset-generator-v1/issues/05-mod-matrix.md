@@ -4,13 +4,13 @@
 
 **Blocked by:** 03 (Tracer bullet), 04 (The full Parameter Reference)
 
-**Status:** ready-for-human
+**Status:** done
 
 - [x] `serum-gen inspect` shows mod-matrix routings of factory presets, checked against known values in at least 2 presets
 - [x] Routings written into a Preset read back identically; round-trip tests still pass
 - [x] The validator rejects unknown sources/destinations, out-of-range amounts and more routings than the matrix holds
 - [x] Seam test: a scripted draft with routings produces a Preset whose read-back routings match
-- [ ] Manual check: a generated Preset with an LFO → cutoff routing audibly moves in Serum 1
+- [x] Manual check: a generated Preset with an LFO → cutoff routing audibly moves in Serum 1
 
 ## Comments
 
@@ -28,3 +28,4 @@
 - "Mod N out" is written at 100 %, like 3,688 of the 3,697 factory routings.
 - Live run: "dubstep wobble bass …" produced LFO 1 (1/8) → Fil Cutoff 55 % and Env 2 → Fil Cutoff 40 %, with the filter on (`User/AI/Dubstep Wobble Bass 18 Pluck`).
 - **Still open, needs the owner:** load that Preset. The Matrix should show both routings, and the filter should audibly wobble in 1/8 and pluck on each note.
+- 2026-09-29: owner loaded `Dubstep Wobble Bass 18 Pluck` in Serum 1.368. The Matrix shows LFO 1 → Fil Cutoff and Env 2 → Fil Cutoff, and it audibly wobbles. So the written record layout (first float (amount+1)/2, menu position, markers) is accepted by Serum.

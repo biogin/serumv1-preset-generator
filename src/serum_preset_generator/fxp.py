@@ -218,7 +218,8 @@ def _write_routings(state: bytearray, routings: list[Routing]) -> None:
             amount, bipolar = routing.amount / 100, routing.bipolar
         else:
             route, amount, bipolar = MOD_EMPTY_ROUTE, 0.0, False
-        # The first float mirrors the amount on a 0..1 scale (0.5 in empty slots).
+        # The first float mirrors the amount on a 0..1 scale (0.5 in empty slots);
+        # Serum loads routings written this way (checked in Serum, ticket 05).
         struct.pack_into("<fff", state, offset + MOD_AMOUNTS_AT, (amount + 1) / 2, amount, 1.0)
         state[offset + MOD_BIPOLAR_AT] = 1 if bipolar else 0
         struct.pack_into("<HHHH", state, offset + MOD_ROUTE_AT, *route)
