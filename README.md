@@ -1,8 +1,12 @@
 # Serum 1 Preset Generator
 
 Describe a sound in plain language — "aggressive cyberpunk bass that keeps the
-sub clean," or in Russian — to Claude (or any AI chat app). You get a real,
-ready-to-load **Preset** sitting in Xfer Serum 1's browser (`User → AI`).
+sub clean," or in Russian — to Claude Desktop, Claude Code, or another local
+AI chat app on your own computer. You get a real, ready-to-load **Preset**
+sitting in Xfer Serum 1's browser (`User → AI`).
+
+It needs a local app, not claude.ai in a browser — it writes the Preset file
+straight into Serum's folder on your machine, which a web chat can't reach.
 
 - **Free, no sign-up.** Nothing to subscribe to, no API key to go get. If you
   can chat with Claude, you can use this.
