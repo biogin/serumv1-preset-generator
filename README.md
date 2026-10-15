@@ -19,13 +19,16 @@ rates](https://www.anthropic.com/pricing)). Developed and tested on macOS; Windo
 Linux likely work too via `SERUM_GEN_SERUM_ROOT` (see Configuration below) but are
 untested.
 
-Quickest way to try it, no clone needed:
+**Quick try**, no clone needed:
 
 ```sh
-uvx --from git+https://github.com/biogin/serum-preset-generator serum-gen "warm evolving pad, no reverb"
+ANTHROPIC_API_KEY=sk-ant-… uvx --from git+https://github.com/biogin/serum-preset-generator@v0.1.0 \
+  serum-gen "warm evolving pad, no reverb"
 ```
 
-To develop on it instead:
+**Full setup** — clone this repo first if you want to configure `SERUM_GEN_SERUM_ROOT`,
+a custom template, or anything else in Configuration below via a `.env` file instead of
+exported env vars:
 
 ```sh
 uv sync
@@ -49,8 +52,38 @@ switches revised but not their modulation matrix.
 ## MCP server (any MCP-compatible client)
 
 The server exposes two tools: `design_patch(sound_description)` and
-`revise_patch(preset, feedback)`. It reads `.env`
-from this folder, so the key needn't be in the client's environment.
+`revise_patch(preset, feedback)`.
+
+### Quick try, no clone needed
+
+**Claude Code:**
+
+```sh
+claude mcp add serum-gen --scope user -e ANTHROPIC_API_KEY=sk-ant-… -- \
+  uvx --from git+https://github.com/biogin/serum-preset-generator@v0.1.0 serum-gen-mcp
+```
+
+**Claude Desktop:** in *Settings → Developer → Edit Config*
+(`~/Library/Application Support/Claude/claude_desktop_config.json`), add the following
+and restart Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "serum-gen": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/biogin/serum-preset-generator@v0.1.0",
+               "serum-gen-mcp"],
+      "env": { "ANTHROPIC_API_KEY": "sk-ant-…" }
+    }
+  }
+}
+```
+
+### Full setup, for configuration beyond the defaults
+
+Clone the repo and use `.env` (as in Setup above) if you want `SERUM_GEN_SERUM_ROOT`,
+a custom template, or other Configuration settings without passing env vars by hand.
 
 **Claude Code:**
 
@@ -59,9 +92,7 @@ claude mcp add serum-gen --scope user -- \
   /opt/homebrew/bin/uv --directory ~/PersonalProjects/serum-preset-generator run serum-gen-mcp
 ```
 
-**Claude Desktop:** in *Settings → Developer → Edit Config*
-(`~/Library/Application Support/Claude/claude_desktop_config.json`), add the following
-and restart Claude Desktop:
+**Claude Desktop:**
 
 ```json
 {
@@ -75,11 +106,15 @@ and restart Claude Desktop:
 }
 ```
 
+It reads `.env` from that folder, so the key needn't be in the client's environment.
 Use absolute paths: Claude Desktop doesn't start servers with your shell's `PATH`.
 Replace `/opt/homebrew/bin/uv` with the output of `which uv` if yours lives elsewhere,
 and the folder with wherever you cloned this repo.
-Then ask it, for example: *"Make me a Serum preset: warm evolving pad, no reverb"*, or
-*"Make my Biggest Hard 808 preset hit harder."*
+
+---
+
+Either way, then ask it, for example: *"Make me a Serum preset: warm evolving pad, no
+reverb"*, or *"Make my Biggest Hard 808 preset hit harder."*
 
 ## Configuration
 
