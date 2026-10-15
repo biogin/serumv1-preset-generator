@@ -29,6 +29,10 @@ listen before you commit to it.
 Ask Claude something like:
 
 - *"Make me a Serum preset: warm evolving pad, no reverb"*
+- *"warm pad, Don Toliver-ish"*, *"glassy pluck, Four Tet style"*, *"aggressive
+  bass, Skrillex-ish"* — style and artist references work too; Claude draws on
+  its general sense of that sound (genre, mood, typical gear), not an exact
+  reproduction of any one track
 - *"тёмный мягкий пэд"* (works in Russian too)
 - *"Make my Biggest Hard 808 preset hit harder"*
 
