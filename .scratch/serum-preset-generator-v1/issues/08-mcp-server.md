@@ -26,3 +26,4 @@
   - Claude Desktop: added to `claude_desktop_config.json`; the original is backed up as `claude_desktop_config.json.bak-serum-gen-2026-09-29`.
 - **Still open, needs the owner:** restart Claude Desktop and ask it for a preset; the Preset should appear in `User/AI`.
 - 2026-09-29: owner asked Claude Desktop for a preset. It worked end to end.
+- 2026-10-15: [ADR 0004](../../../docs/adr/0004-no-model-in-the-server.md) replaced `design_patch(sound_description)` with `write_patch(patch, constraints)`, plus new `edit_patch`/`list_parameters`/`describe_preset` tools. The server itself (stdio, `MCPServer`, shared `presentation.py` output, readable-not-crashing error handling) is unchanged; only the tool surface and what it validates/writes changed — there is no model call inside this process anymore.

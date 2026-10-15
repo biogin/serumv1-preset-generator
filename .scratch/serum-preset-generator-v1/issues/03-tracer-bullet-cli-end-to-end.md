@@ -43,3 +43,4 @@ This ticket introduces the pipeline seam, `design_patch(sound_description)`, whi
 - `serum-gen inspect <file.fxp>` still inspects; any other description starting with "inspect" is designed.
 - **Still open, needs the owner:** load one generated Preset from `User/AI` in Serum 1.
 - 2026-09-29: owner loaded `Cyberpunk Clean Sub Drive` and `Tyomnyy Myagkiy Ambient Pad` in Serum 1. Both load and play fine.
+- 2026-10-15: [ADR 0004](../../../docs/adr/0004-no-model-in-the-server.md) removed `serum-gen "<sound description>"` itself, along with the pipeline it ran (the project's goal changed to producers, not developers, and the API key this command needed was the biggest barrier to that). The CLI now only has `inspect`; designing a preset from a description happens through the MCP server.

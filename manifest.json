@@ -1,0 +1,47 @@
+{
+  "manifest_version": "0.4",
+  "name": "serumv1-preset-generator",
+  "display_name": "Serum 1 Preset Generator",
+  "version": "0.2.0",
+  "description": "Validates and writes Xfer Serum 1 (.fxp) presets — no model, no API key.",
+  "long_description": "Writes and edits real Xfer Serum 1 .fxp preset files directly on disk. You (the calling model) design the sound; this server only validates it against a verified Parameter Reference and writes the file, byte-tested against the factory library. No model call and no API key live anywhere in this process. Open source (MIT); see the README for the full tool list and known limitations.",
+  "author": {
+    "name": "biogin",
+    "url": "https://github.com/biogin"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/biogin/serumv1-preset-generator"
+  },
+  "homepage": "https://github.com/biogin/serumv1-preset-generator",
+  "documentation": "https://github.com/biogin/serumv1-preset-generator#readme",
+  "support": "https://github.com/biogin/serumv1-preset-generator/issues",
+  "server": {
+    "type": "uv",
+    "entry_point": "src/serum_preset_generator/mcp_server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "--directory", "${__dirname}", "serum-gen-mcp"],
+      "env": {
+        "SERUM_GEN_SERUM_ROOT": "${user_config.serum_root}"
+      }
+    }
+  },
+  "user_config": {
+    "serum_root": {
+      "type": "directory",
+      "title": "Serum 1 presets folder (optional)",
+      "description": "Your Serum 1 preset library root (the folder containing Presets/ and Tables/). Leave empty to use the standard macOS install location.",
+      "required": false,
+      "sensitive": false
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": {
+      "python": ">=3.12"
+    }
+  },
+  "keywords": ["serum", "serum1", "xfer", "synthesizer", "music-production", "sound-design"],
+  "license": "MIT"
+}

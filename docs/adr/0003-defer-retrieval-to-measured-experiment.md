@@ -1,3 +1,5 @@
 # Defer retrieval (LlamaIndex) until the eval set justifies it
 
+**Status: superseded by [ADR 0004](0004-no-model-in-the-server.md)** — there is no pipeline left to retrieve into.
+
 v1 has no retrieval step. The pipeline relies on the model's own synthesis knowledge, a Serum 1 parameter reference (all 299 parameters with their names, ranges and enums, built for the `.fxp` writer anyway) and the validate-and-retry loop. The failures that matter most are invented parameter names, out-of-range values and Serum 2–only features. Those are exact, structured facts that the parameter reference catches deterministically, and searching a PDF would not do better. So retrieval is not needed to get a working Preset, and leaving it out removes moving parts on the way to the real risk, the `.fxp` writer. In v1.1, LlamaIndex is added as a measured experiment: run the eval set with and without retrieval, on both Claude Sonnet 5.5 and the local Ollama model, and keep retrieval only where it improves results. We expect it to matter most for the local model. Until then, `search_knowledge` is not exposed, and the chat host answers follow-up questions from its own knowledge.

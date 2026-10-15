@@ -52,3 +52,4 @@ Interfaces:
   - `PR 808 Kick Circuit [SD]_v2` isn't clearly harder; the owner calls it subjective.
   - The mechanics work. This is a sound-design quality gap: for a kick-style 808 the model shortened the decay and added mild distortion (60 % wet), rather than adding transient punch or loudness.
   - Candidate case for the ticket 09 test set: revise "PR 808 Kick Circuit [SD]" with "hit harder".
+- 2026-10-15: [ADR 0004](../../../docs/adr/0004-no-model-in-the-server.md) replaced this pipeline-based `revise_patch(preset, feedback)` with `edit_patch(preset, changes)`, a structured partial-Patch update with no model inside this codebase. The mechanics this ticket built — applying changes onto the original's bytes, Routing-lock handling, numbered naming, the "Changes" diff — all carried over unchanged; only the feedback → changes translation moved to the calling MCP client.

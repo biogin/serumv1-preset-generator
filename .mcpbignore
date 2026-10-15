@@ -1,0 +1,28 @@
+# Virtual environments -- the packaged extension runs `uv run`, which
+# resolves its own environment from pyproject.toml/uv.lock at install time;
+# a pre-built .venv would just bloat the bundle.
+.venv/
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+dist/
+build/
+*.egg-info
+
+# Test suite -- not needed at runtime
+tests/
+
+# Issue tracker / design docs -- not part of the shipped server
+.scratch/
+docs/
+
+# git metadata
+.git/
+.gitignore
+
+# Editors / OS
+.DS_Store

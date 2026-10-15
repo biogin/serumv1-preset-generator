@@ -14,7 +14,7 @@ A short summary compares the two models.
 
 **Blocked by:** 05 (The mod matrix), 06 (Constraint checks), 07 (Local model option)
 
-**Status:** ready-for-agent
+**Status:** needs-triage — [ADR 0004](../../../docs/adr/0004-no-model-in-the-server.md) removes the pipeline this ticket was scoped to evaluate (retry count, model comparison, ear rating all assumed a model in this codebase). Blocked-by 07 is now moot the same way. Rescope around validator/codec coverage instead, if this is still wanted at all.
 
 - [ ] 10–15 test Sound Descriptions stored as data, mixing categories and languages, several with constraints
 - [ ] The test set runs under a dedicated pytest marker and is excluded from the default `pytest` run

@@ -1,19 +1,22 @@
-import pytest
-
 from serum_preset_generator import config
 
 
-def test_the_provider_defaults_to_anthropic_on_sonnet(monkeypatch):
-    monkeypatch.delenv("SERUM_GEN_PROVIDER", raising=False)
-    monkeypatch.delenv("SERUM_GEN_MODEL", raising=False)
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+def test_output_dir_defaults_to_serums_ai_folder(monkeypatch):
+    monkeypatch.delenv("SERUM_GEN_OUTPUT_DIR", raising=False)
+    monkeypatch.delenv("SERUM_GEN_SERUM_ROOT", raising=False)
 
-    assert config.make_model().model == "claude-sonnet-5-5"
+    loaded = config.load_design_config()
+
+    assert loaded.output_dir == config.DEFAULT_SERUM_ROOT / "Presets" / "User" / "AI"
 
 
-@pytest.mark.parametrize("provider", ["ollama", "openai"])
-def test_an_unavailable_provider_is_a_clear_error(monkeypatch, provider):
-    monkeypatch.setenv("SERUM_GEN_PROVIDER", provider)
+def test_output_dir_is_configurable(monkeypatch, tmp_path):
+    monkeypatch.setenv("SERUM_GEN_OUTPUT_DIR", str(tmp_path))
 
-    with pytest.raises(config.ConfigError, match=provider):
-        config.make_model()
+    assert config.load_design_config().output_dir == tmp_path
+
+
+def test_resolve_keeps_an_injected_config(tmp_path):
+    injected = config.load_design_config()
+
+    assert config.resolve(injected) is injected

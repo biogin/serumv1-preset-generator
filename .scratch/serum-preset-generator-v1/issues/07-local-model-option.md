@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 (Tracer bullet)
 
-**Status:** ready-for-agent
+**Status:** wontfix — moot. [ADR 0004](../../../docs/adr/0004-no-model-in-the-server.md) removes the model from this codebase entirely; there's no provider left to make configurable, local or otherwise.
 
 - [ ] Switching provider needs only config or the CLI flag, with no code change
 - [ ] With `ollama` selected and the network off, `serum-gen "<sound description>"` produces a Patch Recipe and Preset (or a clear validation failure)
