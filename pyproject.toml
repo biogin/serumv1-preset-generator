@@ -3,8 +3,9 @@ name = "serum-preset-generator"
 version = "0.1.0"
 description = "Turn a sound description into a Serum 1 patch recipe and preset"
 readme = "README.md"
+license = "MIT"
 authors = [
-    { name = "Wreble", email = "youdontneed@gmail.com" }
+    { name = "biogin" }
 ]
 requires-python = ">=3.12"
 dependencies = [

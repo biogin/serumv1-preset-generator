@@ -7,13 +7,25 @@ clean", or in Russian). You get a step-by-step **Patch Recipe** and a ready-to-l
 - **Pipeline:** a LangGraph pipeline goes plan → draft → validate → retry → write, on Claude Sonnet 5.5.
 - **Validation:** every draft is checked by code against a **Parameter Reference** of all 299 Serum 1 parameters and against the **Constraints** the description states (clean sub, no reverb, no distortion, mono). Failures go back to the model with concrete fixes.
 - **Preset files:** Serum 1's `.fxp` format is written by a codec built for this project and tested byte-for-byte against the factory library.
-- **Interfaces:** it runs from the command line, or as an **MCP server** you chat with in Claude Desktop or Claude Code.
+- **Interfaces:** it runs from the command line, or as an **MCP server** you chat with from any MCP-compatible client (Claude Desktop, Claude Code, and others).
 
 Design notes: [`CONTEXT.md`](CONTEXT.md) (glossary) and [`docs/adr/`](docs/adr/) (decisions).
 
 ## Setup
 
-Requires macOS with Serum 1 installed, Python 3.12 and [`uv`](https://docs.astral.sh/uv/).
+Requires Serum 1 installed, Python 3.12 and [`uv`](https://docs.astral.sh/uv/), and your
+own Anthropic API key (usage is billed to that key at [Anthropic's published
+rates](https://www.anthropic.com/pricing)). Developed and tested on macOS; Windows and
+Linux likely work too via `SERUM_GEN_SERUM_ROOT` (see Configuration below) but are
+untested.
+
+Quickest way to try it, no clone needed:
+
+```sh
+uvx --from git+https://github.com/biogin/serum-preset-generator serum-gen "warm evolving pad, no reverb"
+```
+
+To develop on it instead:
 
 ```sh
 uv sync
@@ -34,7 +46,7 @@ several match, it lists them), or a path. The Revision's recipe lists only what 
 why. Presets saved by older Serum builds (all factory presets) can have their knobs and
 switches revised but not their modulation matrix.
 
-## MCP server (Claude Desktop / Claude Code)
+## MCP server (any MCP-compatible client)
 
 The server exposes two tools: `design_patch(sound_description)` and
 `revise_patch(preset, feedback)`. It reads `.env`
@@ -82,6 +94,15 @@ All settings are optional, set in the environment or `.env`:
 | `SERUM_GEN_SERUM_ROOT` | `/Library/Audio/Presets/Xfer Records/Serum Presets` |
 | `SERUM_GEN_TEMPLATE` | the packaged Init preset |
 | `SERUM_GEN_MAX_RETRIES` | `3` |
+
+## Known limitations
+
+- **Cloud only.** Every call costs real Anthropic API usage on your own key; there's no
+  free or offline local-model path yet (tracked as a future option).
+- **Revision quality is unverified on some cases.** `revise_patch` has worked well on
+  presets like "Biggest Hard 808" + "hit harder," but at least one case ("PR 808 Kick
+  Circuit [SD]" + "hit harder") didn't clearly change the sound as asked. Treat
+  Revisions as a starting point to audition, not a guaranteed result.
 
 ## Development
 
