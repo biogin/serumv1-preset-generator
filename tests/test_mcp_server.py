@@ -63,6 +63,23 @@ def test_write_patch_returns_the_summary_and_where_the_preset_is(config):
     assert "no reverb ✓" in text
 
 
+def test_write_patch_accepts_a_routing(config):
+    result = call_tool(
+        build_server(config=config),
+        "write_patch",
+        {
+            "patch": {
+                "name": "Routed",
+                "params": {},
+                "routings": [{"source": "LFO 1", "destination": "Fil Cutoff", "amount": 15.0}],
+            }
+        },
+    )
+
+    assert not result.is_error
+    assert "LFO 1" in text_of(result) and "Fil Cutoff" in text_of(result)
+
+
 def test_an_invalid_patch_is_a_readable_tool_result_not_a_crash(config):
     result = call_tool(
         build_server(config=config),
@@ -95,6 +112,97 @@ def test_edit_patch_asks_which_preset_when_ambiguous(config, tmp_path):
 
     assert result.is_error
     assert "808 Boom Soft" in text_of(result)
+
+
+def test_edit_patch_reports_a_broken_constraint_not_just_an_exception(config, tmp_path):
+    server = build_server(config=config, library=boom_library(tmp_path))
+
+    result = call_tool(
+        server,
+        "edit_patch",
+        {
+            "preset": "808 boom",
+            "changes": {"params": {"Dist_Drv": 60.0}},
+            "constraints": ["clean_sub"],
+        },
+    )
+
+    assert result.is_error
+    assert "clean sub" in text_of(result)
+
+
+def test_edit_patch_reports_a_missing_preset_instead_of_crashing(config, tmp_path):
+    server = build_server(config=config, library=boom_library(tmp_path))
+
+    result = call_tool(
+        server, "edit_patch", {"preset": "Nonexistent Pad", "changes": {"params": {}}}
+    )
+
+    assert result.is_error
+    assert "Nonexistent Pad" in text_of(result)
+
+
+def test_describe_preset_reports_a_missing_preset_instead_of_crashing(config, tmp_path):
+    server = build_server(config=config, library=boom_library(tmp_path))
+
+    result = call_tool(server, "describe_preset", {"preset": "Nonexistent Pad"})
+
+    assert result.is_error
+    assert "Nonexistent Pad" in text_of(result)
+
+
+def test_describe_preset_asks_which_preset_when_ambiguous(config, tmp_path):
+    server = build_server(config=config, library=boom_library(tmp_path))
+
+    result = call_tool(server, "describe_preset", {"preset": "808"})
+
+    assert result.is_error
+    assert "808 Boom Soft" in text_of(result)
+
+
+def test_write_patch_reports_an_unexpected_failure_instead_of_crashing(config, tmp_path):
+    """A write-time failure (bad config, full disk, permission error, ...) must
+
+    reach the caller as a readable tool error, never a silent write-nowhere
+    or a crashed MCP connection — that's exactly how the serum_root
+    misconfiguration bug went unnoticed.
+    """
+    blocker = tmp_path / "blocker"
+    blocker.write_text("not a directory")
+    broken_config = config.__class__(
+        output_dir=blocker / "AI",
+        template=config.template,
+        wavetables=config.wavetables,
+    )
+
+    result = call_tool(
+        build_server(config=broken_config),
+        "write_patch",
+        {"patch": {"name": "x", "params": {}}},
+    )
+
+    assert result.is_error
+    assert "write_patch failed" in text_of(result)
+
+
+def test_edit_patch_reports_an_unexpected_write_failure_instead_of_crashing(config, tmp_path):
+    blocker = tmp_path / "blocker"
+    blocker.write_text("not a directory")
+    broken_config = config.__class__(
+        output_dir=blocker / "AI",
+        template=config.template,
+        wavetables=config.wavetables,
+    )
+    library = boom_library(tmp_path)
+
+    result = call_tool(
+        build_server(config=broken_config, library=library),
+        "edit_patch",
+        {"preset": "808 boom", "changes": {"params": {}}},
+    )
+
+    assert result.is_error
+    assert "edit_patch failed" in text_of(result)
 
 
 def test_list_parameters_lists_the_designable_reference(config):

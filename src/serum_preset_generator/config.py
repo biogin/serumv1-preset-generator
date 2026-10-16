@@ -29,8 +29,23 @@ def load_environment() -> None:
     load_dotenv(PROJECT_ROOT / ".env")
 
 
+def _configured_serum_root() -> Path | None:
+    """SERUM_GEN_SERUM_ROOT, or None if it isn't really set.
+
+    An MCP host (e.g. Claude Desktop's .mcpb installer) that leaves the
+    optional "Serum presets folder" field blank may pass its unresolved
+    `${user_config.serum_root}` template through as the env var instead of
+    omitting it or substituting an empty string. Treat that, and a blank
+    value, the same as unset so the default location is used.
+    """
+    value = os.environ.get("SERUM_GEN_SERUM_ROOT", "").strip()
+    if not value or value.startswith("${"):
+        return None
+    return Path(value)
+
+
 def load_design_config() -> DesignConfig:
-    serum_root = Path(os.environ.get("SERUM_GEN_SERUM_ROOT", DEFAULT_SERUM_ROOT))
+    serum_root = _configured_serum_root() or DEFAULT_SERUM_ROOT
     template_path = os.environ.get("SERUM_GEN_TEMPLATE")
     template = Path(template_path).read_bytes() if template_path else default_template()
     return DesignConfig(
@@ -44,7 +59,7 @@ def load_design_config() -> DesignConfig:
 
 def library_dir() -> Path:
     """Serum's preset library, searched when a Preset is named rather than given by path."""
-    return Path(os.environ.get("SERUM_GEN_SERUM_ROOT", DEFAULT_SERUM_ROOT)) / "Presets"
+    return (_configured_serum_root() or DEFAULT_SERUM_ROOT) / "Presets"
 
 
 def factory_wavetables(tables_dir: Path) -> frozenset[str] | None:
