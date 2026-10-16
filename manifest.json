@@ -2,7 +2,7 @@
   "manifest_version": "0.4",
   "name": "serumv1-preset-generator",
   "display_name": "Serum 1 Preset Generator",
-  "version": "0.2.0",
+  "version": "1.0.0",
   "description": "Validates and writes Xfer Serum 1 (.fxp) presets — no model, no API key.",
   "long_description": "Writes and edits real Xfer Serum 1 .fxp preset files directly on disk. You (the calling model) design the sound; this server only validates it against a verified Parameter Reference and writes the file, byte-tested against the factory library. No model call and no API key live anywhere in this process. Open source (MIT); see the README for the full tool list and known limitations.",
   "author": {

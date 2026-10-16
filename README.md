@@ -51,7 +51,7 @@ stable release, no clone needed:
 
 ```sh
 claude mcp add serumv1-preset-generator -- \
-  uvx --from git+https://github.com/biogin/serumv1-preset-generator@v0.2.0 serum-gen-mcp
+  uvx --from git+https://github.com/biogin/serumv1-preset-generator@v1.0.0 serum-gen-mcp
 ```
 
 Any MCP client that reads a JSON config (Claude Desktop's own
@@ -63,7 +63,7 @@ works the same way):
   "mcpServers": {
     "serumv1-preset-generator": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/biogin/serumv1-preset-generator@v0.2.0",
+      "args": ["--from", "git+https://github.com/biogin/serumv1-preset-generator@v1.0.0",
                "serum-gen-mcp"]
     }
   }
@@ -83,11 +83,11 @@ Please set up the serumv1-preset-generator MCP server on this computer.
 2. Register it as an MCP server pointed at
    https://github.com/biogin/serumv1-preset-generator (no need to clone it
    yourself -- `uv` fetches and builds it). If I'm on Claude Code, run:
-   `claude mcp add serumv1-preset-generator -- uvx --from git+https://github.com/biogin/serumv1-preset-generator@v0.2.0 serum-gen-mcp`
+   `claude mcp add serumv1-preset-generator -- uvx --from git+https://github.com/biogin/serumv1-preset-generator@v1.0.0 serum-gen-mcp`
    If I'm on Claude Desktop, add this to claude_desktop_config.json
    (Settings -> Developer -> Edit Config):
    {"mcpServers": {"serumv1-preset-generator": {"command": "uvx", "args":
-   ["--from", "git+https://github.com/biogin/serumv1-preset-generator@v0.2.0",
+   ["--from", "git+https://github.com/biogin/serumv1-preset-generator@v1.0.0",
    "serum-gen-mcp"]}}}
 
 3. Tell me exactly what you did, then tell me to fully quit and restart my

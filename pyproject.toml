@@ -1,6 +1,6 @@
 [project]
 name = "serum-preset-generator"
-version = "0.2.0"
+version = "1.0.0"
 description = "Validates and writes Xfer Serum 1 presets over MCP; no model, no API key"
 readme = "README.md"
 license = "MIT"
